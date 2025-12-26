@@ -2,6 +2,7 @@
 The second brain living inside your carry-on devices. Memory based on day-to-day smartphone HCI data.
 
 TODO:
+- **important**: changing integration from A11Y inspector service to DroidRun and AppAgent (both open-source)
 - setting up communication with A11Y inspector service
 - skeleton for agent and memory layer
 
