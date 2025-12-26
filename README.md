@@ -1,18 +1,24 @@
 # Portable-Brain
-The second brain living inside your carry-on devices. Memory based on day-to-day smartphone HCI data.
+Your second brain living inside carry-on devices. Memory based on day-to-day [smartphone] HCI observations & habits.
 
-TODO:
+#### TODO:
 - **important**: changing integration from A11Y inspector service to DroidRun and AppAgent (both open-source)
-- setting up communication with A11Y inspector service
+- setting up communication with DroidRun App (Python SDK)
 - skeleton for agent and memory layer
 
-Architecture (subject to change):
+### Architecture (subject to change):
 - FastAPI (Handles 2 main modes: background memory/KG updates + user request processing)
     - dependencies + lifetime management
         - session management
         - logging
     - LLM service
         - main orchestrator
+            - self-evaluator (based on user response to suggested action)
+                - evaluated results sent to special memory handler to update directly, or observe future user action
+            - memory updates
+        - monitoring agent
+            - semantic filtering on top of high-potential signals given by DroidRun app
+            - memory updates
         - retryable LLM client
             - primary
             - fallback
@@ -32,11 +38,12 @@ Architecture (subject to change):
         - postgres + pgvector
             - vector embeddings
             - KG + vector embeddings
-    - requests + communication w/ A11Y service
-        - websocket connection
+    - requests + communication w/ DroidRun Service
+        - simply through Python SDK import
+        - passes through monitoring agent, any notable actions are forwarded to memory handler
     - routes/API for commands by user
 
-Directory Organization:
+### Directory Organization:
 - scripts
 - src
     - common
