@@ -44,30 +44,67 @@ Your second brain living inside carry-on devices. Memory based on day-to-day [sm
     - routes/API for commands by user
 
 ### Directory Organization:
-- scripts
+- scripts/...
+- tests/...
 - src
+    - config
+        - .env
     - common
         - services
             - llm_service
-            - kg/vector db services (future TBD)
-            - a11y_listener (websocket client)
+                - rate_limiter
+                - retryable_client
+                - ...
+            - kg_service/... (TBD)
+            - vector_service/... (TBD)
+            - droidrun_tools/... (Python SDK import)
         - db
+            - models/...
+            - crud/...
+            - session.py
         - logging
             - logger.py
+        - types/...
+    - middleware
+        - error_handler
     - memory (background tasks)
-        - baseline
-        - knowledge_graph
-        - vector_embeddings
-        - hypergraph
-        - temporal_graph
-        - common
+        - handlers
+            - baseline
+            - knowledge_graph
+            - vector_embeddings
+            - hypergraph
+            - temporal_graph
+        - actions
+            - update_memory
+            - delete_memory
+            - add_memory
+        - common/...
     - agent_service (user requests)
-        - text
-        - share_media
-        - chat (answer questions, conversations, etc.)
+        - api
+            - routes/...
         - orchestrator
+            - main_orchestrator
+            - handlers
+                - text
+                    - llm_output_types/...
+                    - system_prompts/...
+                    - process_text
+                - share_media
+                    - llm_output_types/...
+                    - system_prompts/...
+                    - process_share_media
+                - chat/... (answer questions, conversations, etc.)
+                    - llm_output_types/...
+                    - system_prompts/...
+                    - process_conversations
         - common
-            - types/...
+            - types/... (specific to API handling + orchestrator LLM types)
+    - monitoring
+        - action_monitor/...
+        - self-evaluator/...
+        - semantic_filtering/...
     - core
         - lifespan.py
+        - dependencies.py
     - app.py
+    - poetry dependencies
