@@ -1,0 +1,1 @@
+This project is currently WIP, and will possibly be distributed as a package in the future. The `portable_brain/` directory manages the core backend service and potential SDK.
