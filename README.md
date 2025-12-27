@@ -108,3 +108,6 @@ Your second brain living inside carry-on devices. Memory based on day-to-day [sm
         - dependencies.py
     - app.py
     - poetry dependencies
+
+### Dependencies
+This project uses poetry to manage dependencies. Use `poetry add <package>` to add a new dependency to the project. If your dependencies are out-of-sync, use `poetry install` to fetch the latest version defined by `pyproject.toml` and `poetry.lock`.
