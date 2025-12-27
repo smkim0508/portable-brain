@@ -1,0 +1,1 @@
+# crud operations for memory data structures in db representation

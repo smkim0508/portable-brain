@@ -1,0 +1,1 @@
+# NOTE: TBD, not set on using vector embedding service yet

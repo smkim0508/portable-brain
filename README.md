@@ -68,7 +68,7 @@ Your second brain living inside carry-on devices. Memory based on day-to-day [sm
     - middleware
         - error_handler
     - memory (background tasks)
-        - handlers
+        - representations
             - baseline
             - knowledge_graph
             - vector_embeddings

@@ -1,0 +1,1 @@
+# canonical DB models for memory data structures
