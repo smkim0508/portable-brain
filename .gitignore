@@ -1,0 +1,6 @@
+# env variables
+*.env*
+!.env.example
+
+# vscode configs
+*.vscode/*
