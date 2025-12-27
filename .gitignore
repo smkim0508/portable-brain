@@ -4,3 +4,7 @@
 
 # vscode configs
 *.vscode/*
+
+# pyc
+*.pyc*
+*__pycache__*

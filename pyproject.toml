@@ -1,0 +1,18 @@
+[project]
+name = "portable-brain"
+version = "0.1.0"
+description = "second brain that learns from HCI data from smartphone usage"
+authors = [
+    {name = "Sungmin Kim",email = "sk3378@princeton.edu"}
+]
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+]
+
+[tool.poetry]
+packages = [{include = "portable_brain", from = "src"}]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
