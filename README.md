@@ -6,6 +6,10 @@ Your second brain living inside carry-on devices. Memory based on day-to-day [sm
 - set up core lifespan and FastAPI app dependencies
 - set up communication with DroidRun App (Python SDK)
 
+### How to Run (Locally):
+- Use uvicorn + FastAPI set up to run the service locally.
+- `poetry run uvicorn portable_brain.app:app --reload`
+
 ### Architecture (subject to change):
 - FastAPI (Handles 2 main modes: background memory/KG updates + user request processing)
     - dependencies + lifetime management
