@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 is_local = get_service_settings().INCLUDE_DOCS
 logger.info(f"is_local (include FastAPI docs?): {is_local}")
 
-docs_config: Dict[str, Any] = {
+docs_config: dict[str, Any] = {
     "docs_url": "/docs" if is_local else None,
     "redoc_url": "/redoc" if is_local else None,
     "openapi_url": "/openapi.json" if is_local else None,
