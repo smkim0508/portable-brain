@@ -7,6 +7,7 @@ from portable_brain.core.lifespan import lifespan
 from fastapi.middleware.cors import CORSMiddleware
 from portable_brain.common.db.session import get_async_session_maker
 from sqlalchemy import text
+from portable_brain.agent_service.api.routes.test_route import router as test_router
 
 # disable FastAPI docs for production/deployment
 is_local = get_service_settings().INCLUDE_DOCS
@@ -59,3 +60,5 @@ async def health():
         return {"status": "error", "database": "unable to connect to main database"}
 
     return {"status": "ok", "database": "connected to main database"}
+
+app.include_router(test_router)
