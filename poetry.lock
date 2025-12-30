@@ -2234,6 +2234,23 @@ deprecated = ">=1.2.18"
 pydantic = ">=2.11.5"
 
 [[package]]
+name = "llama-index-llms-google-genai"
+version = "0.8.3"
+description = "llama-index llms google genai integration"
+optional = false
+python-versions = "<4.0,>=3.10"
+groups = ["main"]
+files = [
+    {file = "llama_index_llms_google_genai-0.8.3-py3-none-any.whl", hash = "sha256:ee906a92bbf579cac1411c062f66c624d211e4f64e34259f1da5504c36e24dab"},
+    {file = "llama_index_llms_google_genai-0.8.3.tar.gz", hash = "sha256:4c8ad48b6124534b09af6b15a16e0a415826045c2a6a6ec82094c38cf53f73ad"},
+]
+
+[package.dependencies]
+google-genai = ">=1.52.0,<2"
+llama-index-core = ">=0.14.5,<0.15"
+pillow = ">=10.2.0"
+
+[[package]]
 name = "llama-index-llms-openai"
 version = "0.6.12"
 description = "llama-index llms openai integration"
@@ -5381,4 +5398,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.13,<3.14"
-content-hash = "2f575590bdc4de97a371d5583ee45f905ba8c6bba89b0448700e726a1d53f600"
+content-hash = "d1d48313e0b8759b5e9f519fd467d96123ad1fe6c4af82b6df450bd2bbdd2ebc"

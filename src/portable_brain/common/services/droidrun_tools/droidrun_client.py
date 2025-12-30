@@ -27,7 +27,7 @@ from droidrun import load_llm
 # settings
 from portable_brain.config.app_config import get_service_settings
 
-logger = logging.getLogger(__name__)
+from portable_brain.common.logging.logger import logger
 
 class DroidRunClient:
     """

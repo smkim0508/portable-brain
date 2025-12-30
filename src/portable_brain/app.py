@@ -9,10 +9,16 @@ from portable_brain.common.db.session import get_async_session_maker
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 from portable_brain.agent_service.api.routes.test_route import router as test_router
-from portable_brain.core.dependencies import get_llm_client, get_main_db_engine
 from portable_brain.common.services.llm_service.llm_client import TypedLLMProtocol
 from portable_brain.agent_service.common.types.test_llm_outputs import TestLLMOutput
 from portable_brain.middleware.logging_middleware import LoggingMiddleware
+from portable_brain.common.services.droidrun_tools.droidrun_client import DroidRunClient
+
+from portable_brain.core.dependencies import (
+    get_llm_client,
+    get_main_db_engine,
+    get_droidrun_client
+)
 
 # disable FastAPI docs for production/deployment
 is_local = get_service_settings().INCLUDE_DOCS
@@ -56,6 +62,7 @@ async def root():
 async def health(
     main_db_engine: AsyncEngine = Depends(get_main_db_engine),
     llm_client: TypedLLMProtocol = Depends(get_llm_client),
+    droidrun_client: DroidRunClient = Depends(get_droidrun_client)
 ):
     """
     Comprehensive health check for all services.
@@ -116,8 +123,44 @@ async def health(
             "message": "LLM health check disabled in production."
         }
 
+    # Check DroidRun connection
+    droidrun_healthy = False
+    try:
+        # Connect to device first if not already connected
+        if not droidrun_client._connected:
+            await droidrun_client.connect()
+
+        # Simple ping to Portal
+        ping_result = await droidrun_client.tools.ping()
+
+        # Get current device state for additional validation
+        state = await droidrun_client.get_current_state()
+        current_app = state['phone_state'].get('packageName', 'Unknown')
+
+        droidrun_healthy = True
+        health_status["services"]["droidrun"] = {
+            "status": "healthy",
+            "message": f"Connected to device {droidrun_client.device_serial}",
+            "current_app": current_app,
+            "portal_version": ping_result.get("version", "unknown"),
+        }
+        logger.info(f"DroidRun health check passed, current app: {current_app}")
+
+    except Exception as e:
+        health_status["services"]["droidrun"] = {
+            "status": "unhealthy",
+            "message": f"Unable to connect to device: {str(e)}",
+            "possible_causes": [
+                "Emulator/device not running",
+                "ADB connection broken",
+                "Portal accessibility service disabled",
+                "TCP port forward failed"
+            ]
+        }
+        logger.error(f"DroidRun health check failed: {e}")
+
     # Set overall status based on all service checks
-    if not (db_healthy and llm_healthy):
+    if not (db_healthy and llm_healthy and droidrun_healthy):
         health_status["status"] = "unhealthy"
 
     return health_status
