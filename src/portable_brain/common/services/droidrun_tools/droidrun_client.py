@@ -14,6 +14,8 @@ Based on DroidRun SDK exploration, available components:
 - Events: TapActionEvent, SwipeActionEvent, InputTextActionEvent, etc.
 """
 
+import os
+import time
 import asyncio
 import logging
 from typing import Any, Dict, List, Optional, Tuple
@@ -51,16 +53,16 @@ class DroidRunClient:
     Wrapper for DroidRun SDK to integrate with FastAPI memory agent service.
 
     Provides two interfaces:
-    1. High-level: Execute enriched natural language commands via DroidAgent
-    2. Low-level: Monitor device state and actions for memory updates
+    1. High-level: Execute enriched natural language commands via DroidAgent (requires LLM init)
+    2. Low-level: Monitor device state and actions for memory updates (does NOT need LLM)
     """
 
     def __init__(
         self,
         device_serial: str = "emulator-5554",
         use_tcp: bool = True,
-        llm_instance=None,
-        api_key: Optional[str] = None,
+        llm_instance = None, # optionally, pass in an LLM instance instead of initializing here
+        api_key: Optional[str] = None
     ):
         """
         Initialize DroidRun client.
@@ -69,7 +71,8 @@ class DroidRunClient:
             device_serial: Android device serial number
             use_tcp: Use TCP mode for faster Portal communication (default: True)
             llm_instance: LLM instance for DroidAgent (if None, will use load_llm)
-            api_key: Google API key (if using load_llm, otherwise reads from env)
+            api_key: Google API key; optional, since observation does not require LLM initialization.
+            NOTE: still highly recommended to initialize service with DroidRun's internal LLM to execute commands.
         """
         self.device_serial = device_serial
         self.use_tcp = use_tcp
@@ -80,15 +83,17 @@ class DroidRunClient:
         else:
             # Use DroidRun's load_llm with Google provider
             # Set API key in environment if provided
-            # NOTE: THIS IS A TEST! seeing if load_llm() can correctly pick out GOOGLE_API_KEY if set, without explicitly passing it as an argument.
+            # NOTE: DroidRun Client expects precisely "GOOGLE_API_KEY" in the environment, so we set it explicitly.
             if api_key:
-                import os
                 os.environ['GOOGLE_API_KEY'] = api_key
 
-            self.llm = load_llm(
-                provider_name="GoogleGenAI",
-                model="gemini-2.5-flash-lite"
-            )
+                self.llm = load_llm(
+                    provider_name="GoogleGenAI",
+                    model="gemini-2.5-flash-lite"
+                )
+                logger.info(f"Successfully initialized LLM agent for DroidRun!")
+            else:
+                logger.warning(f"NO LLM client initialized for DroidRun. You will not be able to execute commands, OBSERVATION ONLY!")
 
         # Initialize AdbTools for monitoring and direct control
         self.tools = AdbTools(

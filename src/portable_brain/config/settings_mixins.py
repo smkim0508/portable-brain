@@ -23,4 +23,5 @@ class GoogleGenAISettingsMixin(BaseModel):
     Model for Google GenAI LLM Client settings.
     """
     GOOGLE_GENAI_API_KEY: str
+
     
