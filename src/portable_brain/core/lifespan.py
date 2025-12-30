@@ -48,10 +48,10 @@ async def lifespan(app: FastAPI):
         app.state.llm_client = typed_llm_client
         logger.info(f"LLM client (GOOGLE GENAI) initialized.")
 
-        # DroidRun SDK client (no auth required)
-        droidrun_client = DroidRunClient()
+        # DroidRun SDK client (uses same Google GenAI LLM via load_llm)
+        droidrun_client = DroidRunClient(api_key=settings.GOOGLE_GENAI_API_KEY)
         app.state.droidrun_client = droidrun_client
-        logger.info("DroidRun SDK client initialized.")
+        logger.info("DroidRun SDK client initialized with Google GenAI LLM.")
 
         try:
             # lets FastAPI process requests during yield
