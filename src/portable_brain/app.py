@@ -147,6 +147,7 @@ async def health(
                 "message": f"Connected to device {droidrun_client.device_serial}",
                 "current_app": current_app,
                 "portal_version": ping_result.get("version", "unknown"),
+                "DroidAgent": "healthy" if droidrun_client.llm and not droidrun_client.disable_llm else "disabled"
             }
             logger.info(f"DroidRun health check passed, current app: {current_app}")
 
