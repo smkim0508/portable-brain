@@ -18,6 +18,7 @@ import asyncio
 import logging
 from typing import Any, Dict, List, Optional, Tuple
 from datetime import datetime
+from functools import wraps
 
 # DroidRun SDK imports
 from droidrun import DroidAgent, AdbTools, DroidrunConfig, DeviceConfig, AgentConfig
@@ -28,6 +29,22 @@ from droidrun import load_llm
 from portable_brain.config.app_config import get_service_settings
 
 from portable_brain.common.logging.logger import logger
+
+def ensure_connected(func):
+    """
+    Decorator to ensure DroidRun client is connected before executing method.
+    Automatically reconnects if connection was lost, and raises an error if reconnection fails.
+    """
+    @wraps(func)
+    async def wrapper(self, *args, **kwargs):
+        if not self._connected:
+            logger.warning(f"DroidRun client disconnected, attempting to reconnect...")
+            await self.connect()
+            if not self._connected:
+                logger.error(f"Failed to reconnect to device {self.device_serial}")
+                raise ConnectionError(f"Failed to reconnect to device {self.device_serial}")
+        return await func(self, *args, **kwargs)
+    return wrapper
 
 class DroidRunClient:
     """
@@ -120,6 +137,7 @@ class DroidRunClient:
     # HIGH-LEVEL INTERFACE: Execute Enriched Commands
     # =====================================================================
 
+    @ensure_connected
     async def execute_command(
         self,
         enriched_command: str,
@@ -155,9 +173,6 @@ class DroidRunClient:
         """
         if not self.llm:
             raise ValueError("LLM instance required for execute_command()")
-
-        if not self._connected:
-            await self.connect()
 
         # Capture state before execution
         state_before = await self.tools.get_state()
@@ -203,6 +218,7 @@ class DroidRunClient:
     # LOW-LEVEL INTERFACE: Monitor Device State
     # =====================================================================
 
+    @ensure_connected
     async def get_current_state(self) -> Dict[str, Any]:
         """
         Get current device state with UI tree and phone context.
@@ -220,8 +236,6 @@ class DroidRunClient:
             print(f"Current app: {state['phone_state']['packageName']}")
             print(f"UI elements: {len(state['ui_elements'])}")
         """
-        if not self._connected:
-            await self.connect()
 
         # Get processed state
         formatted_text, focused_element, ui_elements, phone_state = (
@@ -240,6 +254,7 @@ class DroidRunClient:
             "timestamp": datetime.now().isoformat(),
         }
 
+    @ensure_connected
     async def detect_state_change(self) -> Optional[Dict[str, Any]]:
         """
         Check if device state has changed since last check.
@@ -274,6 +289,7 @@ class DroidRunClient:
         self.last_state = current_state
         return change_event
 
+    @ensure_connected
     async def take_screenshot(self, hide_overlay: bool = True) -> bytes:
         """
         Capture device screenshot.
@@ -284,12 +300,10 @@ class DroidRunClient:
         Returns:
             Screenshot bytes (PNG format)
         """
-        if not self._connected:
-            await self.connect()
-
         _, screenshot_bytes = await self.tools.take_screenshot(hide_overlay=hide_overlay)
         return screenshot_bytes
 
+    @ensure_connected
     async def get_installed_apps(self, include_system: bool = False) -> List[Dict[str, str]]:
         """
         Get list of installed apps.
@@ -300,9 +314,6 @@ class DroidRunClient:
         Returns:
             List of dicts with 'package' and 'name' keys
         """
-        if not self._connected:
-            await self.connect()
-
         apps = await self.tools.get_apps(include_system=include_system)
         return apps
 
@@ -310,6 +321,7 @@ class DroidRunClient:
     # DIRECT ACTIONS (for fine-grained control)
     # =====================================================================
 
+    @ensure_connected
     async def tap_by_index(self, index: int) -> str:
         """
         Tap UI element by index number.
@@ -320,11 +332,9 @@ class DroidRunClient:
         Returns:
             Result message
         """
-        if not self._connected:
-            await self.connect()
-
         return await self.tools.tap_by_index(index)
 
+    @ensure_connected
     async def input_text(self, text: str, index: int = -1, clear: bool = False) -> str:
         """
         Input text into focused or specified element.
@@ -337,11 +347,9 @@ class DroidRunClient:
         Returns:
             Result message
         """
-        if not self._connected:
-            await self.connect()
-
         return await self.tools.input_text(text, index=index, clear=clear)
 
+    @ensure_connected
     async def swipe(
         self,
         start_x: int,
@@ -361,18 +369,14 @@ class DroidRunClient:
         Returns:
             Result message
         """
-        if not self._connected:
-            await self.connect()
-
         return await self.tools.swipe(start_x, start_y, end_x, end_y, duration_ms)
 
+    @ensure_connected
     async def back(self) -> str:
         """Press back button."""
-        if not self._connected:
-            await self.connect()
-
         return await self.tools.back()
 
+    @ensure_connected
     async def start_app(self, package: str, activity: Optional[str] = None) -> str:
         """
         Launch app by package name.
@@ -384,8 +388,6 @@ class DroidRunClient:
         Returns:
             Result message
         """
-        if not self._connected:
-            await self.connect()
 
         return await self.tools.start_app(package, activity)
 

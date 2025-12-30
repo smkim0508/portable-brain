@@ -126,36 +126,35 @@ async def health(
     # Check DroidRun connection
     droidrun_healthy = False
     try:
-        # Connect to device first if not already connected
+        # Check if connected (should already have been established at startup)
         if not droidrun_client._connected:
-            await droidrun_client.connect()
+            health_status["services"]["droidrun"] = {
+                "status": "unhealthy",
+                "message": "Not connected to device (failed at startup)",
+                "device_serial": droidrun_client.device_serial
+            }
+        else:
+            # Simple ping to Portal to verify connection is still alive
+            ping_result = await droidrun_client.tools.ping()
 
-        # Simple ping to Portal
-        ping_result = await droidrun_client.tools.ping()
+            # Get current device state for additional validation
+            state = await droidrun_client.get_current_state()
+            current_app = state['phone_state'].get('packageName', 'Unknown')
 
-        # Get current device state for additional validation
-        state = await droidrun_client.get_current_state()
-        current_app = state['phone_state'].get('packageName', 'Unknown')
-
-        droidrun_healthy = True
-        health_status["services"]["droidrun"] = {
-            "status": "healthy",
-            "message": f"Connected to device {droidrun_client.device_serial}",
-            "current_app": current_app,
-            "portal_version": ping_result.get("version", "unknown"),
-        }
-        logger.info(f"DroidRun health check passed, current app: {current_app}")
+            droidrun_healthy = True
+            health_status["services"]["droidrun"] = {
+                "status": "healthy",
+                "message": f"Connected to device {droidrun_client.device_serial}",
+                "current_app": current_app,
+                "portal_version": ping_result.get("version", "unknown"),
+            }
+            logger.info(f"DroidRun health check passed, current app: {current_app}")
 
     except Exception as e:
         health_status["services"]["droidrun"] = {
             "status": "unhealthy",
-            "message": f"Unable to connect to device: {str(e)}",
-            "possible_causes": [
-                "Emulator/device not running",
-                "ADB connection broken",
-                "Portal accessibility service disabled",
-                "TCP port forward failed"
-            ]
+            "message": f"Connection lost or error: {str(e)}",
+            "device_serial": droidrun_client.device_serial
         }
         logger.error(f"DroidRun health check failed: {e}")
 

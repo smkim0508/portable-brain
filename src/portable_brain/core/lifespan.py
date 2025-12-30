@@ -50,8 +50,20 @@ async def lifespan(app: FastAPI):
 
         # DroidRun SDK client (uses same Google GenAI LLM via load_llm)
         droidrun_client = DroidRunClient(api_key=settings.GOOGLE_GENAI_API_KEY)
+
+        # Connect to android device at startup; if fails, exit
+        try:
+            connected = await droidrun_client.connect()
+            if connected:
+                logger.info(f"DroidRun SDK client connected to device {droidrun_client.device_serial}")
+            else:
+                logger.error("DroidRun SDK client initialized but failed to connect to device. Exiting...")
+                raise RuntimeError("DroidRun is a required dependency. Please check.")
+        except Exception as e:
+            logger.error(f"DroidRun SDK connection failed at startup: {e}. This is a core dependency, please check.")
+            raise RuntimeError("DroidRun is a required dependency. Please check.")
+
         app.state.droidrun_client = droidrun_client
-        logger.info("DroidRun SDK client initialized with Google GenAI LLM.")
 
         try:
             # lets FastAPI process requests during yield
