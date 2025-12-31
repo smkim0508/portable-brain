@@ -84,20 +84,27 @@ class DroidRunClient:
         else:
             # Use DroidRun's load_llm with Google provider
             # Set API key in environment if provided
-            try:
-                if api_key:
-                    # NOTE: DroidRun Client expects precisely "GOOGLE_API_KEY" in the environment, so we set it explicitly.
-                    os.environ['GOOGLE_API_KEY'] = api_key
+            self.llm = None # Initialize to None first
+
+            if api_key:
+                # NOTE: DroidRun Client expects precisely "GOOGLE_API_KEY" in the environment, so we set it explicitly.
+                os.environ['GOOGLE_API_KEY'] = api_key
+
+            # Only attempt to load LLM if API key is available in environment
+            # This prevents partial initialization of Google GenAI client
+            if os.environ.get('GOOGLE_API_KEY'):
+                try:
                     self.llm = load_llm(
                         provider_name="GoogleGenAI",
                         model="gemini-2.5-flash-lite"
                     )
                     logger.info(f"Successfully initialized LLM agent for DroidRun!")
-                else:
-                    logger.warning(f"No LLM client provided for DroidAgent. You will not be able to execute commands, OBSERVATION ONLY!")
+                except Exception as e:
+                    logger.error(f"LLM client initialization failed for DroidAgent, error: {e}.\nYou will not be able to execute commands, OBSERVATION ONLY!")
+                    self.llm = None # Ensure it's None, not a partial client
                     self.disable_llm = True
-            except Exception as e:
-                logger.error(f"LLM client initialization failed for DroidAgent, error: {e}.\nYou will not be able to execute commands, OBSERVATION ONLY!")
+            else:
+                logger.warning(f"No LLM API key found in environment. DroidAgent disabled, OBSERVATION ONLY!")
                 self.disable_llm = True
 
         # Initialize AdbTools for monitoring and direct control

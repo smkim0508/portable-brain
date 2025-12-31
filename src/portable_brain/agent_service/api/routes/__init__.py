@@ -1,0 +1,2 @@
+# NOTE: routes for the agent service is meant to be for user request for semantic commands, which will access existing memory to generate semantically-rich command to be executed by DroidAgent.
+# TODO: make this api only after verifying memory layer first.
