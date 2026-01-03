@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from portable_brain.common.services.llm_service.llm_client import TypedLLMClient, TypedLLMProtocol
 from portable_brain.common.services.llm_service.llm_client.google_genai_client import AsyncGenAITypedClient
 from portable_brain.common.services.droidrun_tools import DroidRunClient
-from portable_brain.monitoring.observation_tracker.observation_client import ObservationTracker
+from portable_brain.monitoring.background_tasks.observation_tracker import ObservationTracker
 
 # This is the location to conveniently return any app lifetime dependencies to be used in routes
 # TODO: add more dependencies as needed

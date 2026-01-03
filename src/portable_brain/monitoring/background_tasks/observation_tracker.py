@@ -37,7 +37,7 @@ class ObservationTracker:
 
                 if change:
                     # Infer what action might have caused this change
-                    observation = await self._create_observation(change)
+                    observation = self._create_observation(change)
 
                     # Store observation
                     self.observations.append(observation)
@@ -51,7 +51,7 @@ class ObservationTracker:
                 print(f"Observation tracking error: {e}")
                 await asyncio.sleep(5)  # Back off on error
 
-    async def _create_observation(self, change: Dict[str, Any]) -> Dict[str, Any]:
+    def _create_observation(self, change: Dict[str, Any]) -> Dict[str, Any]:
         """
         Create observation record from state change.
 
@@ -131,7 +131,7 @@ class ObservationTracker:
     def start_background_tracking(self, poll_interval: float = 1.0):
         """
         Start tracking as a background task.
-        Call this in lifespan startup.
+        Currently called by the background tracking endpoint.
 
         Args:
             poll_interval: How often to poll for changes (seconds)
