@@ -60,12 +60,12 @@ app.include_router(test_router)
 app.include_router(monitoring_router)
 
 # test endpoint
-@app.get("/")
+@app.get("/", tags=["Application"])
 async def root():
     return {"message": "Hello World"}
 
 # health endpoint
-@app.get("/health")
+@app.get("/health", tags=["Application"])
 async def health(
     main_db_engine: AsyncEngine = Depends(get_main_db_engine),
     llm_client: TypedLLMProtocol = Depends(get_llm_client),
