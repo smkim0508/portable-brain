@@ -11,6 +11,7 @@ Your second brain living inside carry-on devices. Memory based on day-to-day [sm
 
 ### DroidRun Client Connection
 - Initialize set up with `droidrun setup` in terminal (one-time).
+- Create a android virtual device (avd) - easiest to use Android Studio application.
 - Start the android emulator with `emulator -avd <your_avd_name>`.
 - Verify ADB connection with `adb devices` - emulator-5554 device should show up.
 - Set up TCP forwarding (for local development w/ emulated android device) using `adb forward tcp:8001 tcp:8001`.
@@ -130,3 +131,40 @@ Your second brain living inside carry-on devices. Memory based on day-to-day [sm
 
 ### Dependencies
 This project uses [poetry](https://python-poetry.org/) to manage dependencies. Please use `poetry add <dependency-group>` to add a new dependency to the project. If your dependencies are out-of-sync, use `poetry install` to fetch the latest version defined by `pyproject.toml` and `poetry.lock`.
+
+### DroidRun Client + Tracker Implementation (scratch space currently)
+#### DroidRun Client
+general commands:
+- execute_command (give natural language request)
+- get_current_state (returns dict w/ state + raw a11y tree + elements)
+- detect_state_change (check if device has changed since last check; outputs the diff)
+- take_screenshot (screenshot bytes as PNG)
+- get_installed_apps (list of installed apps)
+- get_date (fetches current date and time on device)
+
+fine controls:
+- tap_by_index (element by idx)
+- input_text (by index or the current element)
+- swipe (from start coordinate to end coordinate, w/ duration)
+- back (press back button)
+- start_app (by package name)
+
+action history:
+- get_action_history (list of actions w/ timestamp, command, state changes)
+    - for notable history, can customize ("change_type" in app_switch, screen_change, etc.)
+    - currently, only updated via execute_command. If user navigates UI on their own, it won't be reflected - see observation tracker below for user HCI tracking.
+- clear_action_history
+
+helpers:
+- _serialize_state
+- _classify_change (*determines the "change_type")
+
+#### Observation Tracker 
+(wraps droidrun client, allows background tasks to continuously observe user actions)
+- start_tracking (method to continuously poll for UI state change and infer "events")
+- _create_observation (helper to canonically format UI changes into events. To be updated w/ canonical DTO for event classification.)
+- _infer_action (helper to classify event/action types from UI changes)
+- get_observations (retrieves most recent observations from in-memory history)
+- clear_observations
+- start_background_tracking (wrapper to start tracking as a background task w/ async couroutine)
+- stop_tracking (cleans up any currently running tasks and sets running status to false)
