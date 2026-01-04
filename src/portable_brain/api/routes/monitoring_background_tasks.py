@@ -10,7 +10,7 @@ from portable_brain.core.dependencies import get_droidrun_client, get_observatio
 router = APIRouter(prefix="/monitoring/background-tasks", tags=["Monitoring Background Tasks"])
 
 @router.get("/start")
-async def start_observation_tracking(
+def start_observation_tracking(
     droidrun_client: DroidRunClient = Depends(get_droidrun_client),
     observation_tracker: ObservationTracker = Depends(get_observation_tracker),
 ):
@@ -21,3 +21,40 @@ async def start_observation_tracking(
     except Exception as e:
         logger.error(f"Error starting observation tracking task: {e}")
         return {"message": f"Error starting observation tracking task: {e}"}, 500
+
+@router.get("/stop")
+async def stop_observation_tracking(
+    droidrun_client: DroidRunClient = Depends(get_droidrun_client),
+    observation_tracker: ObservationTracker = Depends(get_observation_tracker),
+):
+    try:
+        await observation_tracker.stop_tracking()
+        return {"message": "successfully stopped background observation tracking!"}
+    except Exception as e:
+        logger.error(f"Error stopping observation tracking task: {e}")
+        return {"message": f"Error stopping observation tracking task: {e}"}, 500
+
+@router.get("/clear")
+def clear_observations(
+    droidrun_client: DroidRunClient = Depends(get_droidrun_client),
+    observation_tracker: ObservationTracker = Depends(get_observation_tracker),
+):
+    try:
+        observation_tracker.clear_observations()
+        return {"message": "successfully cleared observation history!"}
+    except Exception as e:
+        logger.error(f"Error clearing observation history: {e}")
+        return {"message": f"Error clearing observation history: {e}"}, 500
+    
+@router.get("get-observations")
+def retrieve_observations(
+    droidrun_client: DroidRunClient = Depends(get_droidrun_client),
+    observation_tracker: ObservationTracker = Depends(get_observation_tracker),
+):
+    try:
+        # NOTE: only retrieve the most recent 5 observations
+        observations = observation_tracker.get_observations(limit=5)
+        return {"observations": observations}, 200
+    except Exception as e:
+        logger.error(f"Error retrieving observation history: {e}")
+        return {"message": f"Error retrieving observation history: {e}"}, 500
