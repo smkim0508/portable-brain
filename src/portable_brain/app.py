@@ -9,6 +9,7 @@ from portable_brain.common.db.session import get_async_session_maker
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 from portable_brain.api.routes.test_route import router as test_router
+from portable_brain.api.routes.monitoring_background_tasks import router as monitoring_router
 from portable_brain.common.services.llm_service.llm_client import TypedLLMProtocol
 from portable_brain.agent_service.common.types.test_llm_outputs import TestLLMOutput
 from portable_brain.middleware.logging_middleware import LoggingMiddleware
@@ -53,6 +54,10 @@ app.add_middleware(
 
 # add logging middleware for requests
 app.add_middleware(LoggingMiddleware)
+
+# add routes
+app.include_router(test_router)
+app.include_router(monitoring_router)
 
 # test endpoint
 @app.get("/")
@@ -166,5 +171,3 @@ async def health(
         health_status["status"] = "unhealthy"
 
     return health_status
-
-app.include_router(test_router)
