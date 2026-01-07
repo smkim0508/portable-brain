@@ -47,7 +47,6 @@ class InstagramMessageSentAction(InstagramActionBase):
     """
     # NOTE: should log entire stream of messages in a single session, not every single message
     type: Literal[InstagramActionType.MESSAGE_SENT] = InstagramActionType.MESSAGE_SENT
-    actor_username: str
     target_username: str
     message_summary: Optional[str] = None
 
@@ -56,7 +55,6 @@ class InstagramPostLikedAction(InstagramActionBase):
     Action for liking a post on Instagram.
     """
     type: Literal[InstagramActionType.POST_LIKED] = InstagramActionType.POST_LIKED
-    actor_username: str
     target_username: str
     post_description: Optional[str] = None
 
@@ -66,7 +64,6 @@ class WhatsAppMessageSentAction(WhatsAppActionBase):
     """
     # NOTE: should log entire stream of messages in a single session, not every single message
     type: Literal[WhatsAppActionType.MESSAGE_SENT] = WhatsAppActionType.MESSAGE_SENT
-    actor_name: Optional[str] = None # assumed to have a sole WhatsApp account
     target_name: str
     message_summary: Optional[str] = None
 
@@ -76,10 +73,8 @@ class SlackMessageSentAction(SlackActionBase):
     """
     # NOTE: should log entire stream of messages in a single session, not every single message
     type: Literal[SlackActionType.MESSAGE_SENT] = SlackActionType.MESSAGE_SENT
-    workspace_name: str
-    channel_name: str
-    thread_name: Optional[str] = None
-    is_dm: bool = False # default assumed to be false
+    thread_name: Optional[str] = None # overrides, assumed None
+    is_dm: bool = False # overrides, default assumed to be false
     target_name: Optional[str] = None # only if message is a dm
     message_summary: Optional[str] = None
 

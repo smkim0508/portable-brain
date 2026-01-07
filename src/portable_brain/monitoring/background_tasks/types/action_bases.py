@@ -29,7 +29,7 @@ class InstagramActionBase(ActionBase):
     TODO: expand fields.
     """
     package: str = "com.instagram.android"
-    username: str
+    username: str # actor's username
 
 class WhatsAppActionBase(ActionBase):
     """
@@ -38,6 +38,7 @@ class WhatsAppActionBase(ActionBase):
     """
     package: str = "com.whatsapp"
     recipient_name: str
+    is_dm: bool
 
 class SlackActionBase(ActionBase):
     """
@@ -45,6 +46,7 @@ class SlackActionBase(ActionBase):
     TODO: expand fields.
     """
     package: str = "com.slack"
+    workspace_name: str
     channel_name: str
-    thread_name: str
-    recipient_name: str
+    thread_name: Optional[str]
+    is_dm: bool
