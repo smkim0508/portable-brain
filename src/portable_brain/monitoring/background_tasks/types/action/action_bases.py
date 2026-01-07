@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from typing import Union, Literal, Optional
 from enum import Enum
-from portable_brain.monitoring.background_tasks.types.actions import ActionSource
+from portable_brain.monitoring.background_tasks.types.actions.actions import ActionSource
 
 class ActionBase(BaseModel):
     """

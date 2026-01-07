@@ -3,7 +3,7 @@ import asyncio
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 from portable_brain.common.services.droidrun_tools.droidrun_client import DroidRunClient
-from portable_brain.monitoring.background_tasks.types.actions import (
+from portable_brain.monitoring.background_tasks.types.action.actions import (
     Action,
     AppSwitchAction,
     InstagramMessageSentAction,
@@ -12,7 +12,7 @@ from portable_brain.monitoring.background_tasks.types.actions import (
     SlackMessageSentAction,
     # TBD
 )
-from portable_brain.monitoring.background_tasks.types.change_types import ChangeType
+from portable_brain.monitoring.background_tasks.types.ui_change.change_types import ChangeType
 from portable_brain.common.types.android_apps import AndroidApp
 from portable_brain.common.logging.logger import logger
 
