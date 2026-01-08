@@ -8,5 +8,6 @@ class UIState(BaseModel):
     """
     Canonical representation of Android UI State.
     - A11Y tree output translated into portable format.
+    TODO: think about what states to record here!
     """
     pass
