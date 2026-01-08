@@ -96,7 +96,7 @@ class ObservationTracker:
                 timestamp=change["timestamp"],
                 package=after["package"],
                 source=change["source"],
-                priority=change["priority"],
+                importance=change["importance"],
                 description=change["description"],
                 src_package=before["package"],
                 src_activity=before["activity"],
@@ -112,7 +112,7 @@ class ObservationTracker:
                    actor_username=change["username"], # actor username
                    target_username=change["target_username"],
                    source=change["source"],
-                   priority=change["priority"],
+                   importance=change["importance"],
                    description=change["description"],
                    message_summary=change["message_summary"],
                )
@@ -127,7 +127,7 @@ class ObservationTracker:
                    is_dm=change["is_dm"],
                    target_name=change["target_name"],
                    source=change["source"],
-                   priority=change["priority"],
+                   importance=change["importance"],
                    description=change["description"],
                    message_summary=change["message_summary"],
                )
@@ -143,7 +143,7 @@ class ObservationTracker:
                    thread_name=change["thread_name"],
                    target_name=change["target_name"],
                    source=change["source"],
-                   priority=change["priority"],
+                   importance=change["importance"],
                    description=change["description"],
                    message_summary=change["message_summary"],
                )
