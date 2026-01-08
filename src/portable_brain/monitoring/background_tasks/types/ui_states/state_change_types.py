@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from typing import Union, Literal, Optional
 from enum import Enum
 
-class ChangeType(str, Enum):
+class StateChangeType(str, Enum):
     """
     Low-level classifications for different UI changes.
     Used to infer high-level actions.

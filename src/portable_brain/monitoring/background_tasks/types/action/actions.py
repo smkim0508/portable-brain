@@ -1,14 +1,14 @@
 from pydantic import BaseModel
 from typing import Union, Literal, Optional
 from enum import Enum
-from portable_brain.monitoring.background_tasks.types.actions.action_bases import (
+from portable_brain.monitoring.background_tasks.types.action.action_bases import (
     ActionBase,
     GenericActionBase,
     InstagramActionBase,
     WhatsAppActionBase,
     SlackActionBase
 )
-from portable_brain.monitoring.background_tasks.types.actions.action_types import (
+from portable_brain.monitoring.background_tasks.types.action.action_types import (
     ActionType,
     GenericActionType,
     InstagramActionType,

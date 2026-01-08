@@ -12,7 +12,7 @@ from portable_brain.monitoring.background_tasks.types.action.actions import (
     SlackMessageSentAction,
     # TBD
 )
-from portable_brain.monitoring.background_tasks.types.ui_change.change_types import ChangeType
+from portable_brain.monitoring.background_tasks.types.ui_states.state_change_types import StateChangeType
 from portable_brain.common.types.android_apps import AndroidApp
 from portable_brain.common.logging.logger import logger
 
@@ -86,12 +86,12 @@ class ObservationTracker:
         Returns an Action object or None if action is determined to be unknown.
         TODO: add more sophisticated logic.
         """
-        change_type: ChangeType = change["change_type"] # TODO: add change DTO
+        change_type: StateChangeType = change["change_type"] # TODO: add change DTO
         before = change["before"] # states
         after = change["after"] # states
         curr_package = before["package"]
 
-        if change_type == ChangeType.APP_SWITCH:
+        if change_type == StateChangeType.APP_SWITCH:
             return AppSwitchAction(
                 timestamp=change["timestamp"],
                 package=after["package"],
@@ -106,7 +106,7 @@ class ObservationTracker:
 
         # else, see if current app supports special tracking
         elif curr_package == AndroidApp.INSTAGRAM:
-            if change_type == ChangeType.TEXT_INPUT:
+            if change_type == StateChangeType.TEXT_INPUT:
                return InstagramMessageSentAction(
                    timestamp=change["timestamp"],
                    actor_username=change["username"], # actor username
@@ -120,7 +120,7 @@ class ObservationTracker:
                 return None
 
         elif curr_package == AndroidApp.WHATSAPP:
-            if change_type == ChangeType.TEXT_INPUT:
+            if change_type == StateChangeType.TEXT_INPUT:
                return WhatsAppMessageSentAction(
                    timestamp=change["timestamp"],
                    recipient_name=change["name"],
@@ -135,7 +135,7 @@ class ObservationTracker:
                 return None
         
         elif curr_package == AndroidApp.SLACK:
-            if change_type == ChangeType.TEXT_INPUT:
+            if change_type == StateChangeType.TEXT_INPUT:
                return SlackMessageSentAction(
                    timestamp=change["timestamp"],
                    workspace_name=change["workspace_name"],

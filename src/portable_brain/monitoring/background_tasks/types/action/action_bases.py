@@ -1,7 +1,8 @@
 from pydantic import BaseModel
 from typing import Union, Literal, Optional
 from enum import Enum
-from portable_brain.monitoring.background_tasks.types.actions.actions import ActionSource
+from portable_brain.monitoring.background_tasks.types.action.actions import ActionSource
+from datetime import datetime, timezone, timedelta
 
 class ActionBase(BaseModel):
     """
@@ -11,7 +12,7 @@ class ActionBase(BaseModel):
     The absolute base class for all actions and shared metadata.
     - App-specific action bases inherit from this base with specific protocols.
     """
-    timestamp: str
+    timestamp: datetime
     description: Optional[str] = None # Human-readable description
     source: ActionSource
     priority: float # a score of how important this action is, from 0.0 to 1.0
