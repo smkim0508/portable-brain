@@ -103,31 +103,59 @@ async def health(
         }
         logger.error(f"Database health check failed: {e}")
 
-    # Check LLM connection (only if enabled via config)
-    llm_healthy = True  # Default to true if check is disabled
+    # Check LLM connections (only if enabled via config)
+    gemini_healthy = True  # Default to true if check is disabled
+    nova_healthy = True    # Default to true if check is disabled
     allow_llm_check = get_service_settings().HEALTH_CHECK_LLM
+
     if allow_llm_check:
-        llm_healthy = False
+        # Check Google Gemini
+        gemini_healthy = False
         try:
-            llm_response = await llm_client.acreate(
+            gemini_response = await gemini_llm_client.acreate(
                 response_model=TestLLMOutput,
                 system_prompt="Are you connected?",
                 user_prompt="Respond with 'True'.",
             )
-            llm_healthy = True
-            health_status["services"]["llm"] = {
+            gemini_healthy = True
+            health_status["services"]["gemini_llm"] = {
                 "status": "healthy",
-                "message": "Connected to LLM"
+                "message": "Connected to Google Gemini LLM"
             }
-            logger.info(f"LLM health check passed, response: {llm_response}")
+            logger.info(f"Gemini LLM health check passed, response: {gemini_response}")
         except Exception as e:
-            health_status["services"]["llm"] = {
+            health_status["services"]["gemini_llm"] = {
                 "status": "unhealthy",
                 "message": f"Unable to connect: {str(e)}"
             }
-            logger.error(f"LLM health check failed: {e}")
+            logger.error(f"Gemini LLM health check failed: {e}")
+
+        # Check Amazon Nova
+        nova_healthy = False
+        try:
+            nova_response = await nova_llm_client.acreate(
+                response_model=TestLLMOutput,
+                system_prompt="Are you connected?",
+                user_prompt="Respond with 'True'.",
+            )
+            nova_healthy = True
+            health_status["services"]["nova_llm"] = {
+                "status": "healthy",
+                "message": "Connected to Amazon Nova LLM"
+            }
+            logger.info(f"Nova LLM health check passed, response: {nova_response}")
+        except Exception as e:
+            health_status["services"]["nova_llm"] = {
+                "status": "unhealthy",
+                "message": f"Unable to connect: {str(e)}"
+            }
+            logger.error(f"Nova LLM health check failed: {e}")
     else:
-        health_status["services"]["llm"] = {
+        health_status["services"]["gemini_llm"] = {
+            "status": "skipped",
+            "message": "LLM health check disabled in production."
+        }
+        health_status["services"]["nova_llm"] = {
             "status": "skipped",
             "message": "LLM health check disabled in production."
         }
@@ -169,7 +197,7 @@ async def health(
         logger.error(f"DroidRun health check failed: {e}")
 
     # Set overall status based on all service checks
-    if not (db_healthy and llm_healthy and droidrun_healthy):
+    if not (db_healthy and gemini_healthy and nova_healthy and droidrun_healthy):
         health_status["status"] = "unhealthy"
 
     return health_status
