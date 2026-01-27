@@ -24,4 +24,9 @@ class GoogleGenAISettingsMixin(BaseModel):
     """
     GOOGLE_GENAI_API_KEY: str
 
+class AmazonNovaSettingsMixin(BaseModel):
+    """
+    Model for Amazon Nova LLM Client settings.
+    """
+    NOVA_API_KEY: str
     

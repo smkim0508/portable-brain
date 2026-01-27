@@ -5,6 +5,7 @@ from typing import Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from portable_brain.config.settings_mixins import (
     GoogleGenAISettingsMixin,
+    AmazonNovaSettingsMixin,
     MainDBSettingsMixin
 )
 from portable_brain.common.logging.logger import logger
@@ -38,6 +39,7 @@ class DefaultSettings(BaseSettings):
 class ServiceSettings(
     MainDBSettingsMixin, # could be split into a generic db classs and wrapper using db name (delimiter)
     GoogleGenAISettingsMixin,
+    AmazonNovaSettingsMixin,
     DefaultSettings # passed in last to set low priority
 ):
     """

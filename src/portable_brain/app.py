@@ -17,7 +17,8 @@ from portable_brain.common.services.droidrun_tools.droidrun_client import DroidR
 from portable_brain.monitoring.background_tasks.observation_tracker import ObservationTracker
 
 from portable_brain.core.dependencies import (
-    get_llm_client,
+    get_gemini_llm_client,
+    get_nova_llm_client,
     get_main_db_engine,
     get_droidrun_client,
     get_observation_tracker
@@ -68,7 +69,8 @@ async def root():
 @app.get("/health", tags=["Application"])
 async def health(
     main_db_engine: AsyncEngine = Depends(get_main_db_engine),
-    llm_client: TypedLLMProtocol = Depends(get_llm_client),
+    gemini_llm_client: TypedLLMProtocol = Depends(get_gemini_llm_client),
+    nova_llm_client: TypedLLMProtocol = Depends(get_nova_llm_client),
     droidrun_client: DroidRunClient = Depends(get_droidrun_client)
 ):
     """

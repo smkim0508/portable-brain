@@ -19,6 +19,7 @@ class TypedLLMProtocol(Protocol):
 class RateLimitProvider(str, Enum):
     """Enumeration of supported rate limit providers."""
     GOOGLE = "google"
+    AWS = "aws"
 
 @runtime_checkable
 class ProvidesProviderInfo(Protocol):

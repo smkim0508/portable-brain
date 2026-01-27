@@ -5,6 +5,7 @@ from portable_brain.common.logging.logger import logger
 from portable_brain.common.db.session import create_db_engine_context, parse_db_settings_from_service, DBSettings, DBType
 from portable_brain.common.services.llm_service.llm_client import TypedLLMClient, TypedLLMProtocol, LLMProvider
 from portable_brain.common.services.llm_service.llm_client.google_genai_client import AsyncGenAITypedClient
+from portable_brain.common.services.llm_service.llm_client.amazon_nova_client import AsyncAmazonNovaTypedClient
 from portable_brain.common.services.droidrun_tools import DroidRunClient
 from portable_brain.monitoring.background_tasks.observation_tracker import ObservationTracker
 
@@ -41,12 +42,18 @@ async def lifespan(app: FastAPI):
         logger.info("Main database engine initialized.")
 
         # LLM clients (no need for resource clean up)
-        # NOTE: for now, only Google GenAI client
-        google_llm_client = AsyncGenAITypedClient(api_key=settings.GOOGLE_GENAI_API_KEY)
+        # NOTE: for now, only Google GenAI and Amazon NOVA clients
+        gemini_llm_client = AsyncGenAITypedClient(api_key=settings.GOOGLE_GENAI_API_KEY)
         # wrap around GenAI client for management
-        typed_llm_client = TypedLLMClient(provider=LLMProvider.GOOGLE_GENAI, client=google_llm_client)
-        app.state.llm_client = typed_llm_client
+        typed_gemini_llm_client = TypedLLMClient(provider=LLMProvider.GOOGLE_GENAI, client=gemini_llm_client)
+        app.state.gemini_llm_client = typed_gemini_llm_client
         logger.info(f"LLM client (GOOGLE GENAI) initialized.")
+
+        nova_llm_client = AsyncAmazonNovaTypedClient(api_key=settings.NOVA_API_KEY)
+        # wrap around Amazon NOVA client for management
+        typed_nova_llm_client = TypedLLMClient(provider=LLMProvider.AMAZON_NOVA, client=nova_llm_client)
+        app.state.nova_llm_client = typed_nova_llm_client
+        logger.info(f"LLM client (AMAZON NOVA) initialized.")
 
         # DroidRun SDK client (uses same Google GenAI LLM via load_llm)
         droidrun_client = DroidRunClient(api_key=settings.GOOGLE_GENAI_API_KEY)

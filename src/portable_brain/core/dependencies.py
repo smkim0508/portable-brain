@@ -15,11 +15,17 @@ def get_main_db_engine(request: Request) -> AsyncEngine:
     """
     return request.app.state.main_db_engine
 
-def get_llm_client(request: Request) -> TypedLLMProtocol:
+def get_gemini_llm_client(request: Request) -> TypedLLMProtocol:
     """
-    FastAPI dependency to get the shared LLM client from the application state.
+    FastAPI dependency to get the shared Google GenAI LLM client from the application state.
     """
-    return request.app.state.llm_client
+    return request.app.state.gemini_llm_client
+
+def get_nova_llm_client(request: Request) -> TypedLLMProtocol:
+    """
+    FastAPI dependency to get the shared Amazon Nova LLM client from the application state.
+    """
+    return request.app.state.nova_llm_client
 
 def get_droidrun_client(request: Request) -> DroidRunClient:
     """
