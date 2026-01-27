@@ -1,6 +1,6 @@
 # Amazon NOVA Client
 import os
-from openai import OpenAI # Nova Model uses OpenAI's API Schema
+from openai import AsyncOpenAI # Nova Model uses OpenAI's API Schema
 from typing import Type
 from pydantic import BaseModel, ValidationError
 # use tenacity to retry when desired
@@ -27,7 +27,7 @@ class AsyncAmazonNovaTypedClient(TypedLLMProtocol, ProvidesProviderInfo):
         # Create shared client in __init__ for FastAPI (ASGI)
         # FastAPI runs in a single event loop, so sharing the client is safe and efficient
         # This enables connection pooling and reduces overhead compared to creating a new client per request
-        self.client = OpenAI(api_key=api_key, base_url="https://api.nova.amazon.com/v1") # Nova-compatible base url
+        self.client = AsyncOpenAI(api_key=api_key, base_url="https://api.nova.amazon.com/v1") # Nova-compatible base url
         self.model_name = model_name
         # Provider metadata for reporting
         self.provider = RateLimitProvider.AWS
@@ -46,7 +46,6 @@ class AsyncAmazonNovaTypedClient(TypedLLMProtocol, ProvidesProviderInfo):
         user_prompt: str,
         **kwargs,
     ) -> PydanticModel:
-        prompt = f"{system_prompt}\n\n{user_prompt}"
 
         last_exception = None
         attempt_count = 0
@@ -64,13 +63,12 @@ class AsyncAmazonNovaTypedClient(TypedLLMProtocol, ProvidesProviderInfo):
                         response_format={"type": "json_object"}, # enforces JSON mode
                         **kwargs,
                     )
-                    parsed = getattr(resp, "parsed", None)
-                    if parsed is not None:
-                        return parsed  # type: ignore[return-value]
-                    
-                    text = getattr(resp, "text", None)
-                    if isinstance(text, str) and text.strip():
-                        return response_model.model_validate_json(text)
+
+                    # Extract content from OpenAI response structure
+                    content = resp.choices[0].message.content
+                    if content and isinstance(content, str) and content.strip():
+                        # Manually validate the JSON string against the Pydantic model
+                        return response_model.model_validate_json(content)
 
                     # Force a retryable failure when output is empty/invalid
                     raise ValueError("LLM response was empty or not parseable to JSON.")

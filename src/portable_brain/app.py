@@ -135,8 +135,8 @@ async def health(
         try:
             nova_response = await nova_llm_client.acreate(
                 response_model=TestLLMOutput,
-                system_prompt="Are you connected?",
-                user_prompt="Respond with 'True'.",
+                system_prompt="You must respond with valid JSON only. No other text or explanation.",
+                user_prompt='Respond with JSON in this exact format: {"connection": true}',
             )
             nova_healthy = True
             health_status["services"]["nova_llm"] = {
