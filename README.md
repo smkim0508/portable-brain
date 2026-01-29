@@ -76,6 +76,7 @@ helpers:
 **TODO: need a way to cleanly get metadata from UI states when referencing UI changes for specific apps. E.g. need to somehow store "username" for instagram UI changes so that it can be referenced in app.
 - complete create_observation() helper
 - complete filling in all inferred_action pathways
+- also note the separation of concerns: droidrun client only tracks the latest two state changes (for diff) and observation tracker client keep a history of 10 most recent state changes for higher-level inference on possible actions / observations.
 
 
 ### Autonomous NL Query Eecution
