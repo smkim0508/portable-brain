@@ -61,10 +61,12 @@ class ObservationTracker:
                 change: UIStateChange | None = await self.client.detect_state_change()
 
                 if change:
-                    # Infer what action might have caused this change
+                    # track of the most recent state changes
+                    # NOTE: automatically maintained via deque
+                    self.recent_state_changes.append(change)
+                    # infer what action might have caused this change
                     inferred_action = self._infer_action(change)
-
-                    # Store inferred actions
+                    # store inferred actions
                     self.inferred_actions.append(inferred_action)
 
                     # TODO: should be handled by memory handler in future
@@ -172,6 +174,7 @@ class ObservationTracker:
         This is a high-level abstraction derived from a union of low-level actions.
         NOTE: observation is what's ultimately stored in the memory.
         """
+        # TODO
         pass
 
     def get_inferred_actions(
@@ -231,6 +234,40 @@ class ObservationTracker:
         observations.reverse() # make the first observation the most recent
 
         return observations
+    
+    def get_state_changes(
+        self,
+        limit: Optional[int] = None, # NOTE: tracker only stores the last 10 state changes right now
+        change_types: Optional[list[StateChangeType]] = None,
+    ) -> List[UIStateChange]:
+        """
+        Get state change history.
+
+        Args:
+            limit: Max state changes to return (only the last 10 are stored anyway)
+            change_types: Filter by change type enums
+
+        Returns:
+            List of recent state changes
+            NOTE: the bottom index in returned list is the most recent. Possibly reverse indices to fetch most recent on top.
+        """
+        # wrap state changes in a list to allow negative idx slicing for limit
+        state_changes = list(self.recent_state_changes)
+
+        # optional filtering by change type
+        if change_types:
+            state_changes = [
+                change for change in state_changes
+                if change.change_type in set(change_types)
+            ]
+        
+        # optional filtering by number of observations limit
+        if limit:
+            state_changes = state_changes[-limit:]
+        
+        state_changes.reverse() # make the first observation the most recent
+
+        return state_changes
 
     def clear_observations(self):
         """Clear observation history after persisting to DB."""
