@@ -22,14 +22,15 @@ from portable_brain.monitoring.background_tasks.types.action.actions import (
     # TBD
 )
 
+from collections import deque
+
 class ObservationTracker:
     """
     Track ALL device state changes, including manual user actions.
     - Client refers to the main DroidRunClient instance.
     - The client's helper are used to detect state changes.
 
-    This complements DroidRunClient.action_history which only tracks
-    execute_command() actions.
+    Complements DroidRunClient.action_history which only tracks agent-executed actions via execute_command()
 
     TODO: finish implementing this tracker.
     - Also create canonical DTO for observations and enums for actions
@@ -38,7 +39,10 @@ class ObservationTracker:
     def __init__(self, client: DroidRunClient):
         self.client = client
         self.inferred_actions: List[Action] = []
-        # TODO: add observations that feed to memory handler
+        # TODO: add observations handling that feed to memory
+        self.observations = []
+        # store recent state changes as a queue w/ max length of 10 to avoid too much memory
+        self.recent_state_changes: deque[UIStateChange] = deque(maxlen=10)
         self.running = False
         self._tracking_task: Optional[asyncio.Task] = None
 
@@ -206,28 +210,21 @@ class ObservationTracker:
     def get_observations(
         self,
         limit: Optional[int] = None,
-        change_types: Optional[list[StateChangeType]] = None,
-    ) -> List[Action]:
+    ) -> List: # need observation DTO
         """
         Get observation history.
-        NOTE: this helper needs refactoring to correctly return observations, not inferred actions
+        TODO: need an observation DTO.
 
         Args:
             limit: Max observations to return
-            change_types: Filter by change types (e.g., ['app_switch', 'screen_change'])
 
         Returns:
             List of observations
             NOTE: the bottom index in returned list is the most recent. Possibly reverse indices to fetch most recent on top.
         """
-        observations = self.inferred_actions
+        observations = self.observations
 
-        if change_types:
-            observations = [
-                o for o in observations
-                if o.source_change_type in set(change_types)
-            ]
-
+        # optional filtering by number of observations limit
         if limit:
             observations = observations[-limit:]
         
@@ -237,7 +234,15 @@ class ObservationTracker:
 
     def clear_observations(self):
         """Clear observation history after persisting to DB."""
-        self.inferred_actions = []
+        self.observations.clear()
+
+    def clear_inferred_actions(self):
+        """Clear inferred action history after persisting to DB."""
+        self.inferred_actions.clear()
+
+    def clear_state_changes(self):
+        """Clear state change history after persisting to DB."""
+        self.recent_state_changes.clear()
 
     def start_background_tracking(self, poll_interval: float = 1.0):
         """
