@@ -1,13 +1,18 @@
 # test route for router + dependency injection
 
 import time
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response, status, HTTPException
 from portable_brain.common.logging.logger import logger
 from portable_brain.common.db.session import get_async_session_maker
 from portable_brain.core.dependencies import get_main_db_engine, get_droidrun_client
 from portable_brain.common.services.droidrun_tools.droidrun_client import DroidRunClient
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
+
+# response models
+from portable_brain.api.response_models.tests import TestResponse
+# request body models
+from portable_brain.api.request_models.tests import TestRequest
 
 router = APIRouter(prefix="/test", tags=["Tests"])
 
@@ -30,6 +35,32 @@ async def second_test(main_db_engine: AsyncEngine = Depends(get_main_db_engine))
 
     logger.info(f"db session successfully injected, dummy query passed")
     return {"message": "db session successfully injected, dummy query passed"}
+
+# test route for Pydantic-validated response schema and request body
+@router.post("/third-test", response_model=TestResponse)
+async def third_test(
+    request: TestRequest,
+    response: Response
+):
+    # logging to test request body parsing
+    logger.info(f"Third test route, request: {request}")
+    if request.requested_num is None:
+        logger.info("requested_num is None")
+    elif request.requested_num > 0:
+        logger.info(f"requested_num is positive")
+    elif request.requested_num < 0:
+        logger.info(f"requested_num is negative")
+    else:
+        logger.info(f"requested_num is 0")
+    
+    # NOTE: FastAPI allows returning the actual pydantic model obj.
+    response_obj = TestResponse(
+        message=f"the requested msg is: {request.request_msg}",
+        list_msg=["this", "is", "a", "list", "of", "strings"]
+    )
+    # adjust the Response status directly
+    response.status_code = status.HTTP_200_OK
+    return response_obj
 
 @router.get("/get-raw-tree")
 async def get_raw_accessibility_tree(
