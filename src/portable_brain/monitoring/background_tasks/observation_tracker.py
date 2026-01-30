@@ -38,8 +38,9 @@ class ObservationTracker:
 
     def __init__(self, client: DroidRunClient):
         self.client = client
-        self.inferred_actions: List[Action] = []
-        # TODO: add observations handling that feed to memory
+        # track the 50 most recent inferred actions
+        self.inferred_actions: deque[Action] = deque(maxlen=50)
+        # track all high-level observations based on inferred actions
         self.observations = []
         # store recent state changes as a queue w/ max length of 10 to avoid too much memory
         self.recent_state_changes: deque[UIStateChange] = deque(maxlen=10)
@@ -169,13 +170,14 @@ class ObservationTracker:
             description=change.description,
         )
 
-    def _create_observation(self, change: Dict[str, Any]) -> Optional[Action]:
+    def _create_observation(self) -> Optional[Action]:
         """
-        Creates the final observation object based on the action dictionary.
+        Creates the final observation object based on the current history of actions.
         This is a high-level abstraction derived from a union of low-level actions.
         NOTE: observation is what's ultimately stored in the memory.
         """
         # TODO
+        # begin w/ making observation DTO
         pass
 
     def get_inferred_actions(
@@ -185,6 +187,7 @@ class ObservationTracker:
     ) -> List[Action]:
         """
         Get inferred actions history.
+        NOTE: only upto 50 recent actions are stored
 
         Args:
             limit: Max observations to return
@@ -194,7 +197,8 @@ class ObservationTracker:
             List of observations
             NOTE: the bottom index in returned list is the most recent, so return is reversed.
         """
-        inferred_actions = self.inferred_actions
+        # wrap in list to allow negative idx slicing
+        inferred_actions = list(self.inferred_actions)
 
         # optional filtering by change type
         if change_types:
