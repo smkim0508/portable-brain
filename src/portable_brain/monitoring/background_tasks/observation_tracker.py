@@ -21,6 +21,7 @@ from portable_brain.monitoring.background_tasks.types.action.actions import (
     SlackMessageSentAction,
     # TBD
 )
+from portable_brain.monitoring.background_tasks.types.observation.observations import Observation
 
 from collections import deque
 
@@ -170,14 +171,14 @@ class ObservationTracker:
             description=change.description,
         )
 
-    def _create_observation(self) -> Optional[Action]:
+    def _create_observation(self) -> Optional[Observation]:
         """
         Creates the final observation object based on the current history of actions.
         This is a high-level abstraction derived from a union of low-level actions.
         NOTE: observation is what's ultimately stored in the memory.
+        - Returns None if no meaningful observation can be made.
         """
-        # TODO
-        # begin w/ making observation DTO
+        # TODO: use the history of inferred actions to build observation
         pass
 
     def get_inferred_actions(
