@@ -25,6 +25,7 @@ from portable_brain.monitoring.background_tasks.types.observation.observations i
     Observation,
     LongTermPeopleObservation,
     LongTermPreferencesObservation,
+    ShortTermPreferencesObservation,
     ShortTermContentObservation
 )
 
@@ -214,8 +215,11 @@ class ObservationTracker:
         else:
             # otherwise, create a new observation unconditionally
             pass
+
+        # TODO: load in llm client and use semantic parsing
+        # short -> long term storage is only relevant for preferences
             
-        # return new observation
+        # return new observation (may be None)
         return new_observation
 
     def get_inferred_actions(
