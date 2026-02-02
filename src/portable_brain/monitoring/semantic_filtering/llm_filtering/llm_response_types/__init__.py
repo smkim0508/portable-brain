@@ -1,0 +1,1 @@
+# LLM response types for semantic filtering logic

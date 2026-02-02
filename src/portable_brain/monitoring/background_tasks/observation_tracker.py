@@ -1,5 +1,6 @@
 # src/monitoring/observation_tracker.py
 import asyncio
+import uuid
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 from portable_brain.common.services.droidrun_tools.droidrun_client import DroidRunClient
@@ -31,7 +32,9 @@ from portable_brain.monitoring.background_tasks.types.observation.observations i
 
 # LLM for inference
 from portable_brain.common.services.llm_service.llm_client import TypedLLMClient
-
+# helper to create observations
+from portable_brain.monitoring.semantic_filtering.llm_filtering.observations import create_new_observation
+# data structrue to track only recent information
 from collections import deque
 
 class ObservationTracker:
@@ -182,7 +185,7 @@ class ObservationTracker:
             description=change.description,
         )
 
-    def _create_observation(self, context_size: int = 10) -> Optional[Observation]:
+    async def _create_observation(self, context_size: int = 10) -> Optional[Observation]:
         """
         Creates a final observation object based on the current history of actions.
             - An observation object will be one of the possible memory nodes.
@@ -216,6 +219,21 @@ class ObservationTracker:
         else:
             # otherwise, create a new observation unconditionally
             pass
+
+        # for now, unconditional test
+        # NOTE: need some way to fetch existing observations and update it or create a new one - RAG?
+        # edge = await self.llm_client.acreate(
+        #     # TODO: fill in prompt, schema
+        # )
+        new_observation = ShortTermPreferencesObservation(
+            id=str(uuid.uuid4()),
+            created_at=datetime.now(),
+            source_id="test_source_id",
+            edge="test_edge",
+            node="test_node",
+            recurrence=1,
+            importance=1.0
+        )
 
         # TODO: load in llm client and use semantic parsing
         # short -> long term storage is only relevant for preferences
@@ -363,3 +381,41 @@ class ObservationTracker:
                 except asyncio.CancelledError:
                     pass  # Expected
     
+    async def create_test_observation(self, context_size: int = 10) -> Optional[Observation]:
+        """
+        Creates a TEST observation object based on the current history of actions.
+        Verifies LLM / RAG functionality.
+        """
+        # TODO: use the history of inferred actions to build more observations
+        # for now, just build a single observation to test
+
+        # if no inferred actions, return; there are no observations to make
+        if not self.inferred_actions:
+            logger.info("no inferred actions to create observation from")
+            return None
+        
+        recent_actions = list(self.inferred_actions)[-context_size:]
+        last_observation = self.observations[-1] if self.observations else None
+
+        # NOTE: test this after verifying creation works
+        # create new observation or update previous
+        new_observation: Observation | None = None
+        if last_observation:
+            # if we have a recent observation, either update it or create new
+            # compare previous observation in the context of recent actions
+            
+            # logic for looking at recent actions and making a meaningful observation
+            pass
+        else:
+            # otherwise, create a new observation unconditionally
+            pass
+
+        # for now, unconditional test
+        # use helper to create observation
+        new_observation = await create_new_observation(actions=recent_actions, latest_observation=last_observation)
+
+        # TODO: load in llm client and use semantic parsing
+        # short -> long term storage is only relevant for preferences
+            
+        # return new observation (may be None)
+        return new_observation
