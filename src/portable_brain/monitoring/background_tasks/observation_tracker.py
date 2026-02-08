@@ -101,7 +101,7 @@ class ObservationTracker(ObservationRepository):
                     self.action_counter += 1
                     # penultimate step, create observation node every context_size actions
                     if self.action_counter >= self.action_context_size:
-                        new_observation = await self._create_observation(context_size=self.action_context_size)
+                        new_observation = await self._create_or_update_observation(context_size=self.action_context_size)
                         if new_observation:
                             # save observation to memory db and local history
                             # TODO: this helper should evict the old observation, save that to db, and add new observation to local history
@@ -208,7 +208,7 @@ class ObservationTracker(ObservationRepository):
             description=change.description,
         )
 
-    async def _create_observation(self, context_size: int = 10) -> Optional[Observation]:
+    async def _create_or_update_observation(self, context_size: int = 10) -> Optional[Observation]:
         """
         Creates a final observation object based on the current history of actions.
             - An observation object will be one of the possible memory nodes.
@@ -220,11 +220,10 @@ class ObservationTracker(ObservationRepository):
             - Utilize an appropriate window size of actions (context_size)
                 - This helper should only be called every context_size new actions are recorded
             - Look at previous time step's observation, and either update it based on new context or create a new observation
-        """
-        # TODO: use the history of inferred actions to build more observations
-        # for now, just build a single observation to test
 
-        # if no inferred actions, return; there are no observations to make
+        NOTE: if a previous observation should be updated, handles local history and returns None
+        """
+        # if no inferred actions, return; there are no observations to make or update
         if not self.inferred_actions:
             return None
         
@@ -236,25 +235,24 @@ class ObservationTracker(ObservationRepository):
         updated_observation: Observation | None = None # conditionally update
         if last_observation:
             # if we have a recent observation, either update it or create new
-            # compare previous observation in the context of recent actions
+            # compare previous observation in the context of recent actions, try to update it
             updated_observation = await self.inferencer.update_observation(last_observation, recent_actions)
         if not updated_observation:
-            # if we reach here, then either no last observation, or there is nothing to update
+            # if we reach here, then either no last observation, or there is nothing meaningful to update
             # -> create new observation; look at recent actions and make a meaningful observation
-            updated_observation = await self.inferencer.create_new_observation(recent_actions)
-        new_observation = updated_observation # may still be None
-
-        # create new observation w/ inferencer
-        logger.info(f"Creating new observation from recent actions.")
-        new_observation = await self.inferencer.create_new_observation(recent_actions)
-
-        # TODO: if we have a new observation, return it and let the parent caller save the cache-evicted observation to db.
-
+            logger.info(f"No update to make, creating new observation from recent actions.")
+            new_observation = await self.inferencer.create_new_observation(recent_actions)
+            logger.info(f"Created new observation from recent actions: {new_observation.node if new_observation else None}")
+            # NOTE: the parent caller will handle saving the cache-evicted observation to db
+            return new_observation # may be None, which indicates no new, meaningful observation to make
+        else:
+            # there is a meaningful observation to update, so update local history and return None
+            logger.info(f"Updated observation from recent actions: {updated_observation.node}")
+            self.observations[-1] = updated_observation # replace last observation w/ updated
+            return None
+        
         # TODO: load in existing nodes by semantic similarity and update or make edges
         # short -> long term storage is only relevant for preferences
-
-        # return new observation (may be None)
-        return new_observation
     
     async def _save_observation(self, new_observation: Observation) -> None:
         """
