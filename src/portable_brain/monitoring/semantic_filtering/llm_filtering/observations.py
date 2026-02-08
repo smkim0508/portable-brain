@@ -17,9 +17,9 @@ from portable_brain.monitoring.background_tasks.types.action.actions import Acti
 
 from portable_brain.monitoring.observation_repository import ObservationRepository
 
-# for testing
+# for inference
 from portable_brain.monitoring.semantic_filtering.llm_filtering.system_prompts.observation_prompts import ObservationPrompts
-from portable_brain.monitoring.semantic_filtering.llm_filtering.llm_response_types.observation_responses import NewObservationLLMResponse, TestObservationLLMResponse
+from portable_brain.monitoring.semantic_filtering.llm_filtering.llm_response_types.observation_responses import TestObservationLLMResponse, NewObservationLLMResponse, UpdatedObservationLLMResponse
 
 # logger
 from portable_brain.common.logging.logger import logger
@@ -93,17 +93,30 @@ class ObservationInferencer(ObservationRepository):
         """
         # TODO: complete this
 
-        # updated_observation_response = await self.llm_client.acreate(
-        #     system_prompt=ObservationPrompts.update_observation_system_prompt,
-        #     user_prompt=ObservationPrompts.get_update_observation_user_prompt(observation, actions),
-        #     response_model=UpdatedObservationLLMResponse
-        # )
+        updated_observation_response = await self.llm_client.acreate(
+            system_prompt=ObservationPrompts.update_existing_observation_system_prompt,
+            user_prompt=ObservationPrompts.get_update_observation_user_prompt(observation, actions),
+            response_model=UpdatedObservationLLMResponse
+        )
 
         # parse response and log
-        # updated_observation_node = updated_observation_response.updated_observation_node
-        # reasoning = updated_observation_response.reasoning
-        # logger.info(f"new observation llm response: {updated_observation_node}, reasoning: {reasoning}")
-        
-        # if not updated_observation_node:
-        #     return None
+        updated_observation_node = updated_observation_response.updated_observation_node
+        reasoning = updated_observation_response.reasoning
+        logger.info(f"new observation llm response: {updated_observation_node}, reasoning: {reasoning}")
 
+        # if no meaningful observation can be inferred, return None
+        if not updated_observation_node:
+            return None
+
+        # otherwise, form observation to return
+        # TODO: classification of observation type is needed
+        updated_observation = ShortTermPreferencesObservation(
+            id=str(uuid.uuid4()),
+            created_at=datetime.now(),
+            source_id="test_source_id", # to be updated
+            edge=None,
+            node=updated_observation_node,
+            recurrence=1,
+            importance=1.0
+        )
+        return updated_observation
