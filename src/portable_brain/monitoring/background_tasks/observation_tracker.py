@@ -101,10 +101,11 @@ class ObservationTracker(ObservationRepository):
                     self.action_counter += 1
                     # penultimate step, create observation node every context_size actions
                     if self.action_counter >= self.action_context_size:
-                        observation = await self._create_observation(context_size=self.action_context_size)
-                        if observation: 
+                        new_observation = await self._create_observation(context_size=self.action_context_size)
+                        if new_observation:
                             # save observation to memory db and local history
-                            await self._save_observation(observation)
+                            # TODO: this helper should evict the old observation, save that to db, and add new observation to local history
+                            await self._save_observation(new_observation)
                         # reset counter
                         self.action_counter = 0
 
@@ -246,22 +247,28 @@ class ObservationTracker(ObservationRepository):
         logger.info(f"Creating new observation from recent actions.")
         new_observation = await self.inferencer.create_new_observation(recent_actions)
 
+        # TODO: if we have a new observation, return it and let the parent caller save the cache-evicted observation to db.
+
         # TODO: load in existing nodes by semantic similarity and update or make edges
         # short -> long term storage is only relevant for preferences
 
         # return new observation (may be None)
         return new_observation
     
-    async def _save_observation(self, observation: Observation) -> None:
+    async def _save_observation(self, new_observation: Observation) -> None:
         """
         Save observation to memory db and local history.
         NOTE: this is the baseline database for now.
         """
-    
-        # let helper save observation to structured memory
-        await save_observation_to_structured_memory(observation, self.main_db_engine)
-        # saves to local history
-        self.observations.append(observation)
+
+        # evict old observation from local history
+        # NOTE: we're not truly evicting yet (max history is 20), but we update the current last observation to DB
+        old_observation = self.observations[-1]
+        if old_observation:
+            # let helper save observation to structured memory
+            await save_observation_to_structured_memory(new_observation, self.main_db_engine)
+        # saves new observation to local history
+        self.observations.append(new_observation)
             
     def get_inferred_actions(
         self,
