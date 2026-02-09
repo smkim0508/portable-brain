@@ -23,8 +23,8 @@ class GoogleGenAIEmbeddingClient(TypedTextEmbeddingProtocol, ProvidesProviderInf
     """
     def __init__(
         self,
-        model_name: str = "gemini-2.5-flash-lite", # given from documentation, could be swapped depending on rate limits / pricing
-        content_type: str = "RETRIEVAL_DOCUMENT", # choose to differ embedding style
+        model_name: str = "gemini-embedding-001", # google genai's default text embedding model
+        content_type: str = "RETRIEVAL_DOCUMENT", # choose to differ embedding style, RETRIEVAL_DOCUMENT for text log context search
         *,
         api_key: str | None = None,
         retry_attempts: int = 2,

@@ -11,7 +11,7 @@ PydanticModel = TypeVar("PydanticModel", bound=BaseModel)
 class TypedTextEmbeddingProtocol(Protocol):
     async def aembed_text(
         self,
-        text: str,
+        text: list[str],
         **kwargs
     ) -> list[list[float]]: ...
 
