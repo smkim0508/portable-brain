@@ -1,0 +1,1 @@
+# gemini offers text embedding API
