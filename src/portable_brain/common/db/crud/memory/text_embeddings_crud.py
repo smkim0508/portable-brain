@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import Optional
 
 # TODO: to be updated, for now a simple test crud
-async def save_text_embedding(
+async def save_text_embedding_log(
     observation_id: str,
     observation_text: str,
     embedding_vector: list[float],
@@ -16,7 +16,7 @@ async def save_text_embedding(
     created_at: Optional[datetime] = None
 ) -> None:
     """
-    Save a text embedding to the database.
+    Save a new text embedding log to the database.
 
     Args:
         observation_id: Unique identifier for the observation
@@ -48,7 +48,7 @@ async def find_similar_embeddings(
     query_vector: list[float],
     limit: int,
     main_db_engine: AsyncEngine,
-    distance_metric: str = "cosine"  # "cosine", "l2", or "inner_product"
+    distance_metric: str = "cosine" # "cosine", "l2", or "inner_product"
 ) -> list[tuple[TextEmbeddingLogs, float]]:
     """
     Find the most similar embeddings using vector similarity search.
@@ -99,7 +99,7 @@ async def find_similar_embeddings(
         raise
 
 
-async def get_embedding_by_id(
+async def get_embedding_by_observation_id(
     observation_id: str,
     main_db_engine: AsyncEngine
 ) -> Optional[TextEmbeddingLogs]:
@@ -126,7 +126,7 @@ async def get_embedding_by_id(
         raise
 
 
-async def delete_embedding(
+async def delete_embedding_by_observation_id(
     observation_id: str,
     main_db_engine: AsyncEngine
 ) -> bool:
