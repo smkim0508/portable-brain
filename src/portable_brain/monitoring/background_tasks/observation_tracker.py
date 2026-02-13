@@ -276,8 +276,11 @@ class ObservationTracker(ObservationRepository):
         old_observation = self.observations[-1]
         if old_observation:
             # let helper save old observation to structured memory
-            await save_observation_to_structured_memory(old_observation, self.main_db_engine)
-            logger.info(f"Successfully saved old observation to STRUCTURED MEMORY: {old_observation.node}")
+
+            # NOTE: temporarily disabled, until textlog completed and clearer memory structure is defined.
+            # await save_observation_to_structured_memory(old_observation, self.main_db_engine)
+            # logger.info(f"Successfully saved old observation to STRUCTURED MEMORY: {old_observation.node}")
+            
             # also saves to text log (semantic vector db) NOTE: this logic might be temporary.
             # we also use a convenience wrapper that handles both embedding generation and saving; should separate in future.
             await self.embedding_generator.generate_and_save_embedding(observation_id=old_observation.id, observation_text=old_observation.node)

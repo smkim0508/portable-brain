@@ -26,8 +26,6 @@ async def save_observation_to_structured_memory(observation: Observation, main_d
     - Uses async sessionmaker to create session.
     - SQLAlchemy allows ORM mapped operations.
     """
-    # NOTE: temporarily disabled, until textlog completed and clearer memory structure is defined.
-    return
 
     # Parse Observation DTO into StructuredMemory ORM by subtype case work
     if isinstance(observation, LongTermPeopleObservation):

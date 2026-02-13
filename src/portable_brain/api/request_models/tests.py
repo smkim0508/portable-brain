@@ -22,3 +22,9 @@ class SimilarEmbeddingRequest(BaseModel):
     Request body for finding the most similar embedding in the DB.
     """
     target_text: str
+
+class SaveObservationRequest(BaseModel):
+    """
+    Request body for saving a mocked observation to structured memory.
+    """
+    observation_node: str
