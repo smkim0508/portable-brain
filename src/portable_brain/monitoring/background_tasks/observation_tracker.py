@@ -84,6 +84,8 @@ class ObservationTracker(ObservationRepository):
         self.inferencer = ObservationInferencer(droidrun_client=self.droidrun_client, llm_client=self.llm_client, main_db_engine=self.main_db_engine)
         # embedding helper NOTE: embedding client is not a core dependency of observation tracker.
         self.embedding_generator = EmbeddingGenerator(embedding_client=text_embedding_client, main_db_engine=self.main_db_engine)
+        # saves the last polling interval to preserve it after pauses
+        self.last_poll_interval: float = 1.0
 
     async def start_tracking(self, poll_interval: float = 1.0):
         """
@@ -410,6 +412,7 @@ class ObservationTracker(ObservationRepository):
         """
         Start tracking as a background task.
         Currently called by the background tracking endpoint.
+            - Saves the latest polling interval.
 
         Args:
             poll_interval: How often to poll for changes (seconds)
@@ -421,18 +424,24 @@ class ObservationTracker(ObservationRepository):
             raise RuntimeError("Observation tracking already running")
 
         self._tracking_task = asyncio.create_task(self.start_tracking(poll_interval))
+        self.last_poll_interval = poll_interval # save only if new task is successfully started
         return self._tracking_task
     
-    async def pause_tracking(self):
+    async def pause_tracking(self) -> bool:
         """
         Simply pause observation tracking, without resetting the local history.
         NOTE: to re-activate tracking after pausing, run start_background_tracking() again.
         If background tracker is not running, does nothing.
+
+        Returns: whether the tracker was previosuly running or not.
         """
         if self.running is True:
             self.running = False
-        # pause briefly before returning to prevent race conditions w/ background tracking task
-        await asyncio.sleep(0.1)
+            # pause briefly before returning to prevent race conditions w/ background tracking task
+            await asyncio.sleep(0.1)
+            return True
+        # otherwise, just return, nothing to kill
+        return False
 
     async def stop_tracking(self):
         """
@@ -517,7 +526,7 @@ class ObservationTracker(ObservationRepository):
         NOTE: allows mocked testing with predefined list of action scenarios.
         """
         # pause tracking before replay to ensure no overrides and unexpected behavior
-        await self.pause_tracking()
+        previous_running = await self.pause_tracking()
 
         # loop over actions, and add each to the local action history.
         for action in actions:
@@ -538,4 +547,8 @@ class ObservationTracker(ObservationRepository):
                 observation_text=last_observation.node
             )
             logger.info(f"Flushed last observation to TEXT LOG on shutdown: {last_observation.node}")
+        
+        if previous_running:
+            # resume tracking if previously running, using last poll interval
+            self.start_background_tracking(poll_interval=self.last_poll_interval)
         
