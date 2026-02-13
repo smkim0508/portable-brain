@@ -16,3 +16,9 @@ class TestEmbeddingRequest(BaseModel):
     """
     embedding_text: str
     observation_id: str
+
+class SimilarEmbeddingRequest(BaseModel):
+    """
+    Request body for finding the most similar embedding in the DB.
+    """
+    target_text: str
