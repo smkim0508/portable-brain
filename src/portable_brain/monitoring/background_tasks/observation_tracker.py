@@ -275,8 +275,8 @@ class ObservationTracker(ObservationRepository):
 
         # evict old observation from local history
         # NOTE: we're not truly evicting yet (max history is 20, for debugging), but we update the current last observation to DB
-        old_observation = self.observations[-1]
-        if old_observation:
+        if self.observations:
+            old_observation = self.observations[-1]
             # let helper save old observation to structured memory
 
             # NOTE: temporarily disabled, until textlog completed and clearer memory structure is defined.
