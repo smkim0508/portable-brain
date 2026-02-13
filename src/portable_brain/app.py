@@ -8,8 +8,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from portable_brain.common.db.session import get_async_session_maker
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
-from portable_brain.api.routes.test_route import router as test_router
-from portable_brain.api.routes.monitoring_background_tasks import router as monitoring_router
 from portable_brain.common.services.llm_service.llm_client import TypedLLMProtocol
 from portable_brain.agent_service.common.types.test_llm_outputs import TestLLMOutput
 from portable_brain.middleware.logging_middleware import LoggingMiddleware
@@ -23,6 +21,16 @@ from portable_brain.core.dependencies import (
     get_droidrun_client,
     get_observation_tracker
 )
+
+# API
+# test routes
+from portable_brain.api.routes.tests.basic_test_route import router as test_router
+from portable_brain.api.routes.tests.db_test_route import router as db_test_router
+from portable_brain.api.routes.tests.llm_test_route import router as llm_test_router
+from portable_brain.api.routes.tests.embedding_test_route import router as embedding_test_router
+from portable_brain.api.routes.tests.observation_tracker_test_route import router as observation_tracker_test_router
+# monitoring routes
+from portable_brain.api.routes.monitoring_background_tasks import router as monitoring_router
 
 # disable FastAPI docs for production/deployment
 is_local = get_service_settings().INCLUDE_DOCS
@@ -57,7 +65,13 @@ app.add_middleware(
 app.add_middleware(LoggingMiddleware)
 
 # add routes
+# test routes
 app.include_router(test_router)
+app.include_router(db_test_router)
+app.include_router(llm_test_router)
+app.include_router(embedding_test_router)
+app.include_router(observation_tracker_test_router)
+# monitoring routes
 app.include_router(monitoring_router)
 
 # test endpoint
