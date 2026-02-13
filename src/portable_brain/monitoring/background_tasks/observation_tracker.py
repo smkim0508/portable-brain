@@ -129,7 +129,7 @@ class ObservationTracker(ObservationRepository):
 
             except Exception as e:
                 print(f"Observation tracking error: {e}")
-                await asyncio.sleep(5)  # Back off on error
+                await asyncio.sleep(5) # Back off on error
 
     def _infer_action(self, change: UIStateChange) -> Action:
         """
@@ -422,6 +422,17 @@ class ObservationTracker(ObservationRepository):
 
         self._tracking_task = asyncio.create_task(self.start_tracking(poll_interval))
         return self._tracking_task
+    
+    async def pause_tracking(self):
+        """
+        Simply pause observation tracking, without resetting the local history.
+        NOTE: to re-activate tracking after pausing, run start_background_tracking() again.
+        If background tracker is not running, does nothing.
+        """
+        if self.running is True:
+            self.running = False
+        # pause briefly before returning to prevent race conditions w/ background tracking task
+        await asyncio.sleep(0.1)
 
     async def stop_tracking(self):
         """
@@ -450,6 +461,8 @@ class ObservationTracker(ObservationRepository):
         # NOTE: _save_observation() only persists the *previous* observation when a new one is created.
         if self.observations:
             last_observation = self.observations[-1]
+            # NOTE: this uses a convenience wrapper that handles both embedding generation and saving
+            # if we want to save to more than just the text log, should handle that here too.
             try:
                 await self.embedding_generator.generate_and_save_embedding(
                     observation_id=last_observation.id,
@@ -497,3 +510,32 @@ class ObservationTracker(ObservationRepository):
             
         # return new observation (may be None)
         return new_observation
+
+    async def replay_action_sequence(self, actions: list[Action]):
+        """
+        Replays a sequence of actions.
+        NOTE: allows mocked testing with predefined list of action scenarios.
+        """
+        # pause tracking before replay to ensure no overrides and unexpected behavior
+        await self.pause_tracking()
+
+        # loop over actions, and add each to the local action history.
+        for action in actions:
+            self.inferred_actions.append(action)
+            self.action_counter += 1
+            if self.action_counter >= self.action_context_size:
+                new_observation = await self._create_or_update_observation(context_size=self.action_context_size)
+                if new_observation:
+                    await self._save_observation(new_observation)
+                self.action_counter = 0
+        
+        # flush the last node
+        # NOTE: add more saving logic here if we want more than just text log
+        if self.observations:
+            last_observation = self.observations[-1]
+            await self.embedding_generator.generate_and_save_embedding(
+                observation_id=last_observation.id,
+                observation_text=last_observation.node
+            )
+            logger.info(f"Flushed last observation to TEXT LOG on shutdown: {last_observation.node}")
+        
