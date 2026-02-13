@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-from typing import Type, List
+from typing import Type, List, Optional
 from pydantic import BaseModel, ValidationError
 # use tenacity to retry when desired
 from tenacity import AsyncRetrying, stop_after_attempt, wait_fixed, retry_if_exception_type
@@ -14,6 +14,7 @@ from google import genai # officially recommended import path
 
 from portable_brain.common.services.embedding_service.text_embedding.protocols import PydanticModel, TypedTextEmbeddingProtocol, ProvidesProviderInfo
 from portable_brain.common.services.embedding_service.text_embedding.protocols import RateLimitProvider
+from portable_brain.common.types.text_embedding_task_types import VALID_GEMINI_TASK_TYPES
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 
@@ -37,7 +38,7 @@ class AsyncGenAITextEmbeddingClient(TypedTextEmbeddingProtocol, ProvidesProvider
         # This enables connection pooling and reduces overhead compared to creating a new client per request
         self.client = genai.Client(api_key=api_key)
         self.model_name = model_name
-        self.content_type = content_type
+        self.content_type = content_type # content/task type to specialized embeddings
         self.embedding_size = embedding_size
         # Provider metadata for reporting
         self.provider = RateLimitProvider.GOOGLE
@@ -49,11 +50,17 @@ class AsyncGenAITextEmbeddingClient(TypedTextEmbeddingProtocol, ProvidesProvider
             reraise=True,
         )
 
-    async def aembed_text(self, text: list[str]) -> list[list[float]]:
+    async def aembed_text(self, text: list[str], task_type: Optional[str] = None) -> list[list[float]]:
         """
         Converts list of text strings into embedding vectors.
         Returns one ContentEmbedding per input text.
+
+        Args:
+            text: List of text strings to embed.
+            task_type: Optional override for the embedding task type. 
+            If None or not a recognized Gemini task type, falls back to the instance's content_type.
         """
+        resolved_task_type = task_type if task_type in VALID_GEMINI_TASK_TYPES else self.content_type
         last_exception = None
         attempt_count = 0
 
@@ -66,7 +73,7 @@ class AsyncGenAITextEmbeddingClient(TypedTextEmbeddingProtocol, ProvidesProvider
                         model=self.model,
                         contents=text, # type: ignore[arg-type] # GenAI SDK accepts list[str] at runtime
                         # sets configs: task type and embedding size
-                        config=types.EmbedContentConfig(task_type=self.content_type, output_dimensionality=self.embedding_size),
+                        config=types.EmbedContentConfig(task_type=resolved_task_type, output_dimensionality=self.embedding_size),
                     )
                     if result:
                         embeddings: List[ContentEmbedding] | None = result.embeddings
