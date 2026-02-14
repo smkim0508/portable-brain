@@ -4,6 +4,7 @@ Your second brain living inside carry-on devices. Memory and context orchestrati
 ### How to Run (Locally):
 - Use uvicorn + FastAPI set up to run the service locally.
 - `poetry run uvicorn portable_brain.app:app --reload`
+- Reference `.env.example` to set up necessary API keys and services.
 
 ### DroidRun Client Connection
 - Initialize set up with `droidrun setup` in terminal (one-time).
@@ -111,8 +112,9 @@ TODO: need a more robust handling of ui state data to make dynamic actions (with
 - TBD: memory service will eventually hold autonomous execution pipelines to handle processing on top of droidrun.
 
 #### Next Project Milestones:
-- Experiment with Portal APK client for data parsing, implement filters
 - Test natural language query capabilities for DroidRun Agent (w/ "Kevin" example)
+- Set up tool calling on LLM, and connect with DroidRun Client
+- Full pipeline for end-to-end testing with mocked action sequences and DroidRun execution w/ enhanced context
 
 ### Architecture (subject to change):
 - FastAPI (Handles 2 main modes: background memory/KG updates + user request processing)
