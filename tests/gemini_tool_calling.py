@@ -65,7 +65,7 @@ def set_light_values(brightness: int, color_temp: str) -> dict[str, int | str]:
 
 # Configure the client and tools
 client = genai.Client(api_key=google_api_key)
-tools = types.Tool(function_declarations=[set_light_values_declaration])
+tools = types.Tool(function_declarations=[set_light_values_declaration]) # type: ignore
 config = types.GenerateContentConfig(tools=[tools])
 
 # Define user prompt
@@ -78,29 +78,29 @@ contents = [
 # Send request with function declarations and user prompt
 response = client.models.generate_content(
     model="gemini-3-flash-preview",
-    contents=contents,
+    contents=contents, # type: ignore
     config=config, # NOTE: this is where the actual declaration is wrapped and passed.
 )
 
 # Debug
-print(response.candidates[0].content.parts[0].function_call)
+print(response.candidates[0].content.parts[0].function_call) # type: ignore
 
 # Extract tool call details, it may not be in the first part.
-tool_call = response.candidates[0].content.parts[0].function_call
+tool_call = response.candidates[0].content.parts[0].function_call # type: ignore
 
-if tool_call.name == "set_light_values":
-    result = set_light_values(**tool_call.args)
+if tool_call.name == "set_light_values": # type: ignore
+    result = set_light_values(**tool_call.args) # type: ignore
     print(f"Function execution result: {result}")
 
 
 # Create a function response part
 function_response_part = types.Part.from_function_response(
-    name=tool_call.name,
+    name=tool_call.name, # type: ignore
     response={"result": result},
 )
 
 # Append function call and result of the function execution to contents
-contents.append(response.candidates[0].content) # Append the content from the model's response.
+contents.append(response.candidates[0].content) # Append the content from the model's response. # type: ignore
 contents.append(types.Content(role="user", parts=[function_response_part])) # Append the function response
 
 # Create final response w/ user-friendly specifications.
@@ -108,7 +108,7 @@ client = genai.Client(api_key=google_api_key)
 final_response = client.models.generate_content(
     model="gemini-3-flash-preview",
     config=config,
-    contents=contents,
+    contents=contents, # type: ignore
 )
 
 print(final_response.text)
