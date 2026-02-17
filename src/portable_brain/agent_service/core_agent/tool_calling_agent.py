@@ -19,18 +19,17 @@ class ToolCallingAgent():
         self.llm_client = gemini_llm_client # NOTE: for now, this llm client must be the gemini client (not dispatcher) to allow atool_call() method
     
     # test helper to connect with droidrun
-    def test_tool_call(self):
+    def test_tool_call(self, user_prompt: str):
         test_system_prompt = (
             "You are an AI agent that controls the user's Android phone. "
             "You have access to the execute_command tool which lets you perform actions on the device. "
             "You MUST use the execute_command tool to carry out any request about the device. "
             "Always use the tool first, then respond with the result."
         )
-        test_user_prompt = "What is the name of my device? Use execute_command to find out."
 
         return self.llm_client.atool_call(
             system_prompt=test_system_prompt,
-            user_prompt=test_user_prompt,
+            user_prompt=user_prompt,
             function_declarations=[droidrun_execution_declaration],
             tool_executors={"execute_command": self.droidrun_client.execute_command},
             max_turns=5
