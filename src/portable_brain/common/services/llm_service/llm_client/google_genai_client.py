@@ -1,12 +1,13 @@
 # The core async set up for Google's GenAI LLM client
 # NOTE: Can be swapped for different LLM providers if necessary
 
-from typing import Type
+from typing import Type, Any, Callable, Awaitable
 from pydantic import BaseModel, ValidationError
 # use tenacity to retry when desired
 from tenacity import AsyncRetrying, stop_after_attempt, wait_fixed, retry_if_exception_type
 
 from google import genai # officially recommended import path
+from google.genai import types
 
 from .protocols import PydanticModel, TypedLLMProtocol, ProvidesProviderInfo
 from .protocols import RateLimitProvider
@@ -48,6 +49,11 @@ class AsyncGenAITypedClient(TypedLLMProtocol, ProvidesProviderInfo):
         user_prompt: str,
         **kwargs,
     ) -> PydanticModel:
+        """
+        Helper to create an async response from the LLM and parse it into a structured Pydantic model output.
+        Supports retries to ensure LLM meets Pydantic validation.
+        """
+
         prompt = f"{system_prompt}\n\n{user_prompt}"
 
         last_exception = None
@@ -59,7 +65,7 @@ class AsyncGenAITypedClient(TypedLLMProtocol, ProvidesProviderInfo):
                 try:
                     resp = await self.client.aio.models.generate_content(
                         model=self.model_name,
-                        contents=prompt,
+                        contents=prompt, # auto-wrapped in a content object
                         config={
                             "response_mime_type": "application/json",
                             "response_schema": response_model,
@@ -91,4 +97,82 @@ class AsyncGenAITypedClient(TypedLLMProtocol, ProvidesProviderInfo):
         raise RuntimeError(
             f"acreate() reached unexpected fallthrough after {attempt_count} attempts; "
             f"retryer likely yielded no final exception and no success. last_exc={type(last_exception).__name__ if last_exception else None}"
+        )
+    
+    async def atool_call(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        function_declarations: list[dict],
+        tool_executors: dict[str, Callable[..., Awaitable[Any]]],
+        max_turns: int = 5,
+        **kwargs,
+    ) -> str:
+        """
+        Helper to create async requests to LLM for tool calling purposes.
+        Supports multi-turn execution and retries on API failures.
+
+        Returns: the final text response from the LLM after all tool calls are resolved.
+        NOTE: no tenacity retryer yet; to be implemented as an inner loop wrapper.
+        """
+        # wrap function declarations in tool and config objects
+        tools = types.Tool(function_declarations=function_declarations) # type: ignore
+        config = types.GenerateContentConfig(
+            system_instruction=system_prompt,
+            tools=[tools],
+        )
+
+        # define user prompt, wrapped in Content to track multi-turn conversation
+        contents: list[types.Content] = [
+            types.Content(
+                role="user", parts=[types.Part(text=user_prompt)]
+            )
+        ]
+
+        for _turn in range(max_turns):
+            # call LLM with current conversation history
+            resp = await self.client.aio.models.generate_content(
+                model=self.model_name,
+                contents=contents, # type: ignore
+                config=config,
+            )
+
+            # extract the response content
+            response_content = resp.candidates[0].content # type: ignore
+
+            # check if the LLM wants to call a tool
+            tool_call = getattr(response_content.parts[0], "function_call", None) if response_content and response_content.parts else None
+
+            if tool_call is None or tool_call.name is None:
+                # NOTE: LLM responded with text, not a tool call, so we're done
+                return resp.text or ""
+
+            # LLM requested a tool call, dispatch to the appropriate executor
+            tool_name = tool_call.name
+            tool_args = dict(tool_call.args) if tool_call.args else {}
+
+            if tool_name not in tool_executors:
+                raise ValueError(f"LLM requested unknown tool '{tool_name}'. Available: {list(tool_executors.keys())}")
+
+            # execute the tool
+            try:
+                result = await tool_executors[tool_name](**tool_args)
+                tool_response = {"result": result}
+            except Exception as e:
+                # send the error back to the LLM so it can recover or explain
+                tool_response = {"error": str(e)}
+
+            # build the function response part
+            function_response_part = types.Part.from_function_response(
+                name=tool_name,
+                response=tool_response,
+            )
+
+            # append model's tool call + our execution result to conversation history
+            contents.append(response_content) # type: ignore
+            contents.append(types.Content(role="user", parts=[function_response_part]))
+
+        # exhausted max turns without getting a text response
+        raise RuntimeError(
+            f"atool_call() exhausted {max_turns} turns without receiving a final text response from LLM."
         )
