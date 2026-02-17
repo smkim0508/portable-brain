@@ -73,6 +73,13 @@ helpers:
 
 TODO: should use a separate context extractor depending on the app. Allows for more robust handling of app-specific data when forming inferred actions with better safety.
 
+#### Tool Calling Agent
+Receives function declarations for droidrun's execute_command() helper. Able to manipulate the phone or fetch information via droidrun execution.
+- Currently shares a global instance across requests, initialized in lifespan. 
+- If each request needs request-scope states, should initialize this per-request w/ droidrun client and gemini llm client.
+
+The main purpose of this agent is to wrap around memory and execution tools, to execute with enhanced context from saved memory.
+
 #### High-level Distinction + Tasks
 1. Observation Tracker makes constant note of state change.
 -> polls on the DroidRun client which uses raw client.get_state() to compare states, and return the change diff.
