@@ -10,7 +10,7 @@ from portable_brain.common.services.llm_service.llm_client.amazon_nova_client im
 from portable_brain.common.services.embedding_service.text_embedding.gemini_embedding_client import AsyncGenAITextEmbeddingClient
 from portable_brain.common.services.droidrun_tools import DroidRunClient
 from portable_brain.monitoring.background_tasks.observation_tracker import ObservationTracker
-from portable_brain.agent_service.core_agent.tool_calling_agent import ToolCallingAgent
+from portable_brain.agent_service.execution_agent.agent import ExecutionAgent
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -91,12 +91,12 @@ async def lifespan(app: FastAPI):
         app.state.observation_tracker = observation_tracker
         logger.info(f"Background observation tracker initialized.")
 
-        tool_calling_agent = ToolCallingAgent(
+        execution_agent = ExecutionAgent(
             droidrun_client=droidrun_client,
             gemini_llm_client=gemini_llm_client # NOTE: not the general typed client, only gemini has atool_call() method
         )
-        app.state.tool_calling_agent = tool_calling_agent
-        logger.info(f"Tool calling agent initialized.")
+        app.state.execution_agent = execution_agent
+        logger.info(f"Execution agent initialized.")
 
         try:
             # lets FastAPI process requests during yield

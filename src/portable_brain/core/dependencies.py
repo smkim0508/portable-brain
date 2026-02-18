@@ -7,7 +7,8 @@ from portable_brain.common.services.embedding_service.text_embedding import Type
 from portable_brain.common.services.llm_service.llm_client.google_genai_client import AsyncGenAITypedClient
 from portable_brain.common.services.droidrun_tools import DroidRunClient
 from portable_brain.monitoring.background_tasks.observation_tracker import ObservationTracker
-from portable_brain.agent_service.core_agent.tool_calling_agent import ToolCallingAgent
+from portable_brain.agent_service.execution_agent.agent import ExecutionAgent
+from portable_brain.agent_service.retrieval_agent.agent import RetrievalAgent
 
 # This is the location to conveniently return any app lifetime dependencies to be used in routes
 # TODO: add more dependencies as needed
@@ -47,8 +48,8 @@ def get_gemini_text_embedding_client(request: Request) -> TypedTextEmbeddingClie
     """
     return request.app.state.gemini_text_embedding_client
 
-def get_tool_calling_agent(request: Request) -> ToolCallingAgent:
+def get_execution_agent(request: Request) -> ExecutionAgent:
     """
-    FastAPI dependency to get the shared tool calling agent from the application state.
+    FastAPI dependency to get the shared execution agent from the application state.
     """
-    return request.app.state.tool_calling_agent
+    return request.app.state.execution_agent
