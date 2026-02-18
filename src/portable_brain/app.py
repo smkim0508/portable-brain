@@ -9,7 +9,7 @@ from portable_brain.common.db.session import get_async_session_maker
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 from portable_brain.common.services.llm_service.llm_client import TypedLLMProtocol
-from portable_brain.agent_service.common.types.test_llm_outputs import TestLLMOutput
+from portable_brain.agent_service.common.types.llm_outputs.test_llm_outputs import TestLLMOutput
 from portable_brain.middleware.logging_middleware import LoggingMiddleware
 from portable_brain.common.services.droidrun_tools.droidrun_client import DroidRunClient
 from portable_brain.monitoring.background_tasks.observation_tracker import ObservationTracker
