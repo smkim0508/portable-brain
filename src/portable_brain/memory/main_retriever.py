@@ -30,7 +30,7 @@ class MemoryRetriever():
     """
 
     def __init__(self, main_db_engine: AsyncEngine):
-        self._engine = main_db_engine
+        self.main_db_engine = main_db_engine
 
     # =====================================================================
     # Structured Memory — Long-Term People (inter-personal relationships)
@@ -44,7 +44,7 @@ class MemoryRetriever():
         """Retrieve long-term people observations (relationships, contacts)."""
         return await get_observations_by_memory_type(
             memory_type="long_term_people",
-            main_db_engine=self._engine,
+            main_db_engine=self.main_db_engine,
             target_entity_id=person_id,
             limit=limit,
         )
@@ -61,7 +61,7 @@ class MemoryRetriever():
         """Retrieve long-term preference observations (habitual usage patterns)."""
         return await get_observations_by_memory_type(
             memory_type="long_term_preferences",
-            main_db_engine=self._engine,
+            main_db_engine=self.main_db_engine,
             source_entity_id=source_app_id,
             limit=limit,
         )
@@ -78,7 +78,7 @@ class MemoryRetriever():
         """Retrieve short-term preference observations (recent behavioural signals)."""
         return await get_observations_by_memory_type(
             memory_type="short_term_preferences",
-            main_db_engine=self._engine,
+            main_db_engine=self.main_db_engine,
             source_entity_id=source_app_id,
             limit=limit,
         )
@@ -96,7 +96,7 @@ class MemoryRetriever():
         """Retrieve short-term content observations (recently viewed documents/media)."""
         return await get_observations_by_memory_type(
             memory_type="short_term_content",
-            main_db_engine=self._engine,
+            main_db_engine=self.main_db_engine,
             source_entity_id=source_id,
             target_entity_id=content_id,
             limit=limit,
@@ -115,7 +115,7 @@ class MemoryRetriever():
         """Find all observations mentioning a specific entity across all memory types."""
         return await get_observations_by_entity(
             entity_id=entity_id,
-            main_db_engine=self._engine,
+            main_db_engine=self.main_db_engine,
             entity_type=entity_type,
             limit=limit,
         )
@@ -129,7 +129,7 @@ class MemoryRetriever():
         """Full-text search across observation content. Returns (memory, rank) tuples."""
         return await fulltext_search_observations(
             search_query=query,
-            main_db_engine=self._engine,
+            main_db_engine=self.main_db_engine,
             memory_type=memory_type,
             limit=limit,
         )
@@ -141,7 +141,7 @@ class MemoryRetriever():
     ) -> list[StructuredMemory]:
         """Retrieve highest-relevance observations ranked by importance * recurrence."""
         return await get_most_relevant_observations(
-            main_db_engine=self._engine,
+            main_db_engine=self.main_db_engine,
             memory_type=memory_type,
             limit=limit,
         )
@@ -160,7 +160,7 @@ class MemoryRetriever():
         return await find_similar_embeddings(
             query_vector=query_vector,
             limit=limit,
-            main_db_engine=self._engine,
+            main_db_engine=self.main_db_engine,
             distance_metric=distance_metric,
         )
 
@@ -171,5 +171,5 @@ class MemoryRetriever():
         """Look up the stored embedding for a specific observation by ID."""
         return await get_embedding_by_observation_id(
             observation_id=observation_id,
-            main_db_engine=self._engine,
+            main_db_engine=self.main_db_engine,
         )
