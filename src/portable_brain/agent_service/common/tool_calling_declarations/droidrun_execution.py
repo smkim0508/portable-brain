@@ -1,9 +1,4 @@
 # tool calling declarations for droidrun functions
-from google import genai
-from google.genai import types
-
-# import droidrun helpers for execution
-from portable_brain.common.services.droidrun_tools.droidrun_client import DroidRunClient
 
 # Define a function that the model can call to execute commands on device via droidrun
 # NOTE: the declaration telling LLM what/how to use this external function

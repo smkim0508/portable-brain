@@ -1,2 +1,3 @@
 # currently, tool calling is only supported by gemini models
 # TBD for other models
+# NOTE: this directory currently serves no purpose; declarations are defined under agent_service/...

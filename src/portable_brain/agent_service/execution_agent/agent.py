@@ -5,7 +5,7 @@ from portable_brain.common.services.droidrun_tools.droidrun_client import DroidR
 from portable_brain.common.services.llm_service.llm_client.google_genai_client import AsyncGenAITypedClient
 
 # import tool calling declarations
-from portable_brain.common.services.llm_service.tool_calling.gemini.droidrun_tool_declaration import droidrun_execution_declaration
+from portable_brain.agent_service.common.tool_calling_declarations.droidrun_execution import droidrun_execution_declaration
 # import system prompts
 from portable_brain.agent_service.common.system_prompts.device_execution_prompts import *
 
