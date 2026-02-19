@@ -23,7 +23,10 @@ from portable_brain.common.logging.logger import logger
 class AsyncGenAITypedClient(TypedLLMProtocol, ProvidesProviderInfo):
     def __init__(
         self,
-        model_name: str = "gemini-2.5-flash-lite", # given from documentation, could be swapped depending on rate limits / pricing
+        # model_name: str = "gemini-2.5-flash-lite", # given from documentation, could be swapped depending on rate limits / pricing
+        # NOTE: for tool calling, 3-flash-preview works much better.
+        # TODO: possibly make a separate client for tool calling, or allow model name to be passed as optional param
+        model_name: str = "gemini-3-flash-preview",
         *,
         api_key: str | None = None,
         retry_attempts: int = 2,
@@ -163,11 +166,21 @@ class AsyncGenAITypedClient(TypedLLMProtocol, ProvidesProviderInfo):
         ]
 
         for _turn in range(max_turns):
+            is_last_turn = _turn == max_turns - 1
+
+            # on the last turn, remove tools to force a text response
+            turn_config = config
+            if is_last_turn:
+                logger.warning(f"[atool_call] Turn {_turn + 1}/{max_turns}: last turn, removing tools to force text response")
+                turn_config = types.GenerateContentConfig(
+                    system_instruction=system_prompt,
+                )
+
             # call LLM with current conversation history
             resp = await self.client.aio.models.generate_content(
                 model=self.model_name,
                 contents=contents, # type: ignore
-                config=config,
+                config=turn_config,
             )
 
             # extract the response content
@@ -179,9 +192,20 @@ class AsyncGenAITypedClient(TypedLLMProtocol, ProvidesProviderInfo):
             if tool_call is None or tool_call.name is None:
                 # NOTE: LLM responded with text, not a tool call, so we're done
                 text = resp.text or ""
+
+                # guard: if LLM returned empty text after a tool call, nudge it to produce output
+                if not text.strip() and _turn > 0 and not is_last_turn:
+                    logger.warning(f"[atool_call] Turn {_turn + 1}: LLM returned empty text after tool call, nudging for output")
+                    contents.append(response_content) # type: ignore
+                    contents.append(types.Content(
+                        role="user",
+                        parts=[types.Part(text="You called a tool and received results, but your response was empty. Please produce your final structured JSON output now.")]
+                    ))
+                    continue
+
                 # if response model is provided, try to validate and return
                 if response_model:
-                    # NOTE: need to add retry logic if this fails in production
+                    # NOTE: may need to add retry loop for production
                     try:
                         cleaned = self._strip_markdown_fences(text)
                         return response_model.model_validate_json(cleaned)
@@ -214,6 +238,10 @@ class AsyncGenAITypedClient(TypedLLMProtocol, ProvidesProviderInfo):
             # append model's tool call + our execution result to conversation history
             contents.append(response_content) # type: ignore
             contents.append(types.Content(role="user", parts=[function_response_part]))
+
+        # NOTE: possible safety fallback, but for now we raise to debug
+        # should not reach here since last turn forces text, but safety fallback
+        # return text if text else ""
 
         # exhausted max turns without getting a text response
         raise RuntimeError(
