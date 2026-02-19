@@ -34,7 +34,7 @@ class ExecutionAgent():
     
     # test helper to connect with droidrun
     # NOTE: very minimal system prompt, no memory context
-    def test_tool_call(self, user_prompt: str):
+    async def test_tool_call(self, user_prompt: str):
         test_system_prompt = f"""
         You are an AI agent that controls the user's Android phone.
         You have access to the execute_command tool which lets you perform actions on the device.        
@@ -42,24 +42,35 @@ class ExecutionAgent():
         Always use the tool first, then respond with the result.
         """
 
-        return self.llm_client.atool_call(
+        return await self.llm_client.atool_call(
             system_prompt=test_system_prompt,
             user_prompt=user_prompt,
             function_declarations=[droidrun_execution_declaration],
             tool_executors={"execute_command": self.droidrun_client.execute_command},
             max_turns=5
         )
-
-    def execute_command(self, user_request: str, context: str):
+    
+    # another placeholder test that uses the full system prompt minus the context
+    async def mocked_execute_command(self, user_request: str):
+        return await self.llm_client.atool_call(
+            system_prompt=DeviceExecutionPrompts.device_execution_system_prompt,
+            user_prompt=user_request,
+            function_declarations=[droidrun_execution_declaration],
+            tool_executors={"execute_command": self.droidrun_client.execute_command},
+            response_model=ExecutionLLMOutput,
+            max_turns=5,
+        )
+    
+    async def execute_command(self, user_request: str, context: str):
         """
         Main tool calling method to execute commands on device, with relevant memory context
 
         Args: context is given as a plain natural language string, alongside the original user request.
         """
-        user_prompt = user_request + "\n\n" + context
+        user_prompt = user_request + "\n\n Context: \n" + context
         # or, make a new semantically enriched user prompt via LLM pass (TBD)
 
-        return self.llm_client.atool_call(
+        return await self.llm_client.atool_call(
             system_prompt=DeviceExecutionPrompts.device_execution_system_prompt,
             user_prompt=user_prompt,
             function_declarations=[droidrun_execution_declaration],

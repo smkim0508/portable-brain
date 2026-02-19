@@ -49,12 +49,12 @@ class RetrievalAgent():
             "get_embedding_for_observation": self.memory_retriever.get_embedding_for_observation,
         }
 
-    def test_retrieve(self, user_request: str):
+    async def test_retrieve(self, user_request: str):
         """
         Test helper to run a single retrieval pass against memory.
         Returns the LLM's final text response (expected to be MemoryRetrievalLLMOutput JSON).
         """
-        return self.llm_client.atool_call(
+        return await self.llm_client.atool_call(
             system_prompt=MemoryRetrievalPrompts.memory_retrieval_system_prompt,
             user_prompt=user_request,
             function_declarations=memory_retriever_declarations,
