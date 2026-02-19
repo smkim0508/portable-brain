@@ -222,3 +222,16 @@ memory_retriever_declarations = [
     find_semantically_similar_declaration,
     get_embedding_for_observation_declaration,
 ]
+
+# placeholder for testing: only text log memory
+memory_retriever_declarations_for_testing = [
+    # get_people_relationships_declaration,
+    # get_long_term_preferences_declaration,
+    # get_short_term_preferences_declaration,
+    # get_recent_content_declaration,
+    # get_all_observations_about_entity_declaration,
+    # search_memories_declaration,
+    # get_top_relevant_memories_declaration,
+    find_semantically_similar_declaration,
+    # get_embedding_for_observation_declaration,
+]

@@ -6,7 +6,7 @@ from portable_brain.common.services.llm_service.llm_client.google_genai_client i
 from portable_brain.memory.main_retriever import MemoryRetriever
 
 # import tool calling declarations
-from portable_brain.agent_service.common.tool_calling_declarations.memory_retriever import memory_retriever_declarations
+from portable_brain.agent_service.common.tool_calling_declarations.memory_retriever import memory_retriever_declarations, memory_retriever_declarations_for_testing
 # import system prompts
 from portable_brain.agent_service.common.system_prompts.memory_retrieval_prompts import MemoryRetrievalPrompts
 # LLM output schema
@@ -48,6 +48,24 @@ class RetrievalAgent():
             "find_semantically_similar": self.memory_retriever.find_semantically_similar,
             "get_embedding_for_observation": self.memory_retriever.get_embedding_for_observation,
         }
+    
+    def _build_tool_executors_for_testing(self) -> dict:
+        """
+        A placeholder helper to test the tool executors.
+        Restricts the tool executors to a subset of MemoryRetriever methods.
+        - NOTE: Only text log memory for now.
+        """
+        return {
+            # "get_people_relationships": self.memory_retriever.get_people_relationships,
+            # "get_long_term_preferences": self.memory_retriever.get_long_term_preferences,
+            # "get_short_term_preferences": self.memory_retriever.get_short_term_preferences,
+            # "get_recent_content": self.memory_retriever.get_recent_content,
+            # "get_all_observations_about_entity": self.memory_retriever.get_all_observations_about_entity,
+            # "search_memories": self.memory_retriever.search_memories,
+            # "get_top_relevant_memories": self.memory_retriever.get_top_relevant_memories,
+            "find_semantically_similar": self.memory_retriever.find_semantically_similar,
+            # "get_embedding_for_observation": self.memory_retriever.get_embedding_for_observation,
+        }
 
     async def test_retrieve(self, user_request: str):
         """
@@ -57,8 +75,8 @@ class RetrievalAgent():
         return await self.llm_client.atool_call(
             system_prompt=MemoryRetrievalPrompts.memory_retrieval_system_prompt,
             user_prompt=user_request,
-            function_declarations=memory_retriever_declarations,
-            tool_executors=self._build_tool_executors(),
+            function_declarations=memory_retriever_declarations_for_testing,
+            tool_executors=self._build_tool_executors_for_testing(),
             response_model=MemoryRetrievalLLMOutput,
             max_turns=5,
         )
