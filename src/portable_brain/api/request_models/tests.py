@@ -41,3 +41,9 @@ class ReplayScenarioRequest(BaseModel):
     Request body for replaying a predefined action scenario through the observation tracker.
     """
     scenario_name: ScenarioName
+
+class ToolCallRequest(BaseModel):
+    """
+    Request body for a natural language query to be executed on the device via tool calling.
+    """
+    user_request: str
