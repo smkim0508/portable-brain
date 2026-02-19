@@ -35,6 +35,8 @@ async def test_tool_call(
     logger.info(f"Tool call test result: {result}")
     return {"result": result}
 
+# NOTE: below are three sets of execution tests for benchmarking
+# Evaluates the contribution of each component: execution agent and retrieval agent (+ orchestrator)
 @router.post("/orchestrated-execution-test")
 async def rag_execution_test(
     request: ToolCallRequest,
@@ -68,7 +70,7 @@ async def direct_execution_test(
     logger.info(f"No augmented context execution test result: {result}")
     return {"result": result}
 
-@ router.post("/direct-droidrun-execution-test")
+@router.post("/direct-droidrun-execution-test")
 async def direct_droidrun_execution_test(
     request: ToolCallRequest,
     droidrun_client: DroidRunClient = Depends(get_droidrun_client)
