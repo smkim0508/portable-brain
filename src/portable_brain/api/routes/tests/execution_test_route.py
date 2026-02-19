@@ -45,3 +45,5 @@ async def rag_execution_test(
     result = await main_orchestrator.run(request.user_prompt)
     logger.info(f"RAG execution test result: {result}")
     return {"result": result}
+
+# TODO: finish building this test api and the baseline

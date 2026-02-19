@@ -5,6 +5,7 @@ from typing import Optional
 
 from portable_brain.common.db.models.memory.structured_storage import StructuredMemory
 from portable_brain.common.db.models.memory.text_embeddings import TextEmbeddingLogs
+from portable_brain.common.services.embedding_service.text_embedding.dispatcher import TypedTextEmbeddingClient
 
 # structured memory fetch operations
 from portable_brain.common.db.crud.memory.structured_memory_crud import (
@@ -22,6 +23,7 @@ from portable_brain.common.db.crud.memory.text_embeddings_crud import (
 class MemoryRetriever():
     """
     Implements helper methods for the retriever agent to access different memory.
+    Handles internal operations like embedding natural language input to text embeddings, so the agent can freely call without overhead.
     - Tool-called by retriever agent.
     - Wraps CRUD read operations with semantically intuitive method names.
     - Each method specifies the memory type it targets.
@@ -29,8 +31,9 @@ class MemoryRetriever():
     TODO: just baseline right now, memory to be refined.
     """
 
-    def __init__(self, main_db_engine: AsyncEngine):
+    def __init__(self, main_db_engine: AsyncEngine, text_embedding_client: TypedTextEmbeddingClient):
         self.main_db_engine = main_db_engine
+        self.text_embedding_client = text_embedding_client
 
     # =====================================================================
     # Structured Memory — Long-Term People (inter-personal relationships)
@@ -152,13 +155,14 @@ class MemoryRetriever():
 
     async def find_semantically_similar(
         self,
-        query_vector: list[float],
+        query: str,
         limit: int = 5,
         distance_metric: str = "cosine",
     ) -> list[tuple[TextEmbeddingLogs, float]]:
-        """Semantic vector search across all embedded observations. Returns (embedding, distance) tuples."""
+        """Semantic search across all embedded observations using natural language. Embeds the query internally."""
+        query_vectors = await self.text_embedding_client.aembed_text(text=[query])
         return await find_similar_embeddings(
-            query_vector=query_vector,
+            query_vector=query_vectors[0],
             limit=limit,
             main_db_engine=self.main_db_engine,
             distance_metric=distance_metric,

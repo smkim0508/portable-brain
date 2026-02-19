@@ -37,7 +37,7 @@ class MemoryRetrievalPrompts():
     - get_top_relevant_memories(memory_type?, limit?) → Highest-relevance observations ranked by importance * recurrence.
 
     Text Embeddings — Semantic Search:
-    - find_semantically_similar(query_vector, limit?, distance_metric?) → Vector similarity search across embedded observations.
+    - find_semantically_similar(query, limit?, distance_metric?) → Semantic similarity search across embedded observations using natural language. Embedding is handled internally.
     - get_embedding_for_observation(observation_id) → Look up a specific observation's embedding.
 
     RETRIEVAL STATE (for multi-turn re-retrieval)
@@ -76,7 +76,7 @@ class MemoryRetrievalPrompts():
         • App/platform references ("the usual app", "where I normally message") → get_long_term_preferences or get_short_term_preferences
         • Recent context ("that article", "what I was reading") → get_recent_content
         • Vague or broad references → search_memories with relevant keywords
-        • When keyword search returns nothing useful → find_semantically_similar with an embedding vector
+        • When keyword search returns nothing useful → find_semantically_similar with a natural language query
     - If this is a re-retrieval, check retrieval_state.previous_queries and DO NOT repeat the same tool call with the same parameters.
 
     3) Execute Queries

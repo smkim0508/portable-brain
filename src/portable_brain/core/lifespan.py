@@ -95,7 +95,8 @@ async def lifespan(app: FastAPI):
 
         # Memory retriever interface
         memory_retriever = MemoryRetriever(
-            main_db_engine=app.state.main_db_engine
+            main_db_engine=app.state.main_db_engine,
+            text_embedding_client=typed_gemini_text_embedding_client
         )
         app.state.memory_retriever = memory_retriever
         logger.info(f"Memory retriever initialized.")

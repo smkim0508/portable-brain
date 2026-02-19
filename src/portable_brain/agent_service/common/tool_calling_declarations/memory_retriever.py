@@ -174,14 +174,13 @@ get_top_relevant_memories_declaration = {
 
 find_semantically_similar_declaration = {
     "name": "find_semantically_similar",
-    "description": "Semantic vector similarity search across all embedded observations. Use this when full-text search is insufficient and you need meaning-based retrieval with a pre-computed query embedding vector.",
+    "description": "Semantic similarity search across all embedded observations using natural language. Use this when full-text search is insufficient and you need meaning-based retrieval. Embedding is handled internally.",
     "parameters": {
         "type": "object",
         "properties": {
-            "query_vector": {
-                "type": "array",
-                "items": {"type": "number"},
-                "description": "The query embedding vector (list of floats) to search against stored observation embeddings.",
+            "query": {
+                "type": "string",
+                "description": "Natural language query to search semantically against stored observation embeddings.",
             },
             "limit": {
                 "type": "integer",
@@ -192,7 +191,7 @@ find_semantically_similar_declaration = {
                 "description": "Distance metric for similarity: 'cosine', 'l2', or 'inner_product'. Defaults to 'cosine'.",
             },
         },
-        "required": ["query_vector"],
+        "required": ["query"],
     },
 }
 
