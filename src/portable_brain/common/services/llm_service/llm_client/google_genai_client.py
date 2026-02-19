@@ -102,6 +102,19 @@ class AsyncGenAITypedClient(TypedLLMProtocol, ProvidesProviderInfo):
             f"retryer likely yielded no final exception and no success. last_exc={type(last_exception).__name__ if last_exception else None}"
         )
     
+    @staticmethod
+    def _strip_markdown_fences(text: str) -> str:
+        """Strip markdown code fences (```json ... ``` or ``` ... ```) from LLM output."""
+        stripped = text.strip()
+        if stripped.startswith("```"):
+            # remove opening fence (```json or ```)
+            first_newline = stripped.index("\n") if "\n" in stripped else len(stripped)
+            stripped = stripped[first_newline + 1:]
+            # remove closing fence
+            if stripped.rstrip().endswith("```"):
+                stripped = stripped.rstrip()[:-3].rstrip()
+        return stripped
+
     def _make_serializable(self, obj: Any) -> Any:
         """Recursively convert tool results into JSON-serializable primitives."""
         if obj is None or isinstance(obj, (str, int, float, bool)):
@@ -170,9 +183,10 @@ class AsyncGenAITypedClient(TypedLLMProtocol, ProvidesProviderInfo):
                 if response_model:
                     # NOTE: need to add retry logic if this fails in production
                     try:
-                        return response_model.model_validate_json(text)
+                        cleaned = self._strip_markdown_fences(text)
+                        return response_model.model_validate_json(cleaned)
                     except Exception as validation_error:
-                        logger.warning(f"Failed to validate LLM response as {response_model.__name__}: {validation_error}\nRaw LLM output: {text}")
+                        logger.warning(f"Failed to validate LLM response as {response_model.__name__}: {validation_error}\nRaw LLM output: {text[:500]}")
                 return text
 
             # LLM requested a tool call, dispatch to the appropriate executor
