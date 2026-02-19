@@ -8,7 +8,8 @@
 from portable_brain.agent_service.execution_agent.agent import ExecutionAgent
 from portable_brain.agent_service.retrieval_agent.agent import RetrievalAgent
 # types
-from portable_brain.agent_service.common.types.llm_outputs.memory_retrieval_outputs import MemoryRetrievalOutput, RetrievalState
+from portable_brain.agent_service.common.types.llm_outputs.memory_retrieval_outputs import MemoryRetrievalLLMOutput
+from portable_brain.agent_service.common.types.orchestration_state import RetrievalState
 
 class MainOrchestrator():
     """
