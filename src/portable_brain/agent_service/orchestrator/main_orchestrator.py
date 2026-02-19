@@ -22,8 +22,13 @@ class MainOrchestrator():
         # define any state variables/metadata
         self.retrieval_state: RetrievalState
 
-    # TODO: later, make orchestration settings to hold params like max loop
-    async def run(self, user_request: str, max_iterations: int = 3) -> ExecutionLLMOutput:
+    async def run(
+        self,
+        user_request: str,
+        max_iterations: int = 3,
+        execution_agent_max_turns: int = 5,
+        retrieval_agent_max_turns: int = 5
+    ) -> ExecutionLLMOutput:
         """
         Main orchestration loop: retrieve context -> execute -> re-retrieve on failure.
         Returns the final ExecutionLLMOutput (success or last failed attempt).
@@ -46,6 +51,7 @@ class MainOrchestrator():
             execution_raw = await self.execution_agent.execute_command(
                 user_request=user_request,
                 context=context,
+                max_turns=execution_agent_max_turns
             )
             execution_result = self._parse_execution(execution_raw)
 
@@ -63,7 +69,7 @@ class MainOrchestrator():
 
             # 5) re-retrieve with state appended to user prompt
             re_retrieval_prompt = user_request + "\n\nretrieval_state:\n" + self.retrieval_state.model_dump_json()
-            retrieval_raw = await self.retrieval_agent.test_retrieve(re_retrieval_prompt)
+            retrieval_raw = await self.retrieval_agent.test_retrieve(re_retrieval_prompt, max_turns=retrieval_agent_max_turns)
             retrieval_result = self._parse_retrieval(retrieval_raw)
             if retrieval_result is not None:
                 all_previous_queries.extend(retrieval_result.retrieval_log)

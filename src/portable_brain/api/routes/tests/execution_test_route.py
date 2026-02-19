@@ -21,6 +21,11 @@ from portable_brain.core.dependencies import (
 # request models
 from portable_brain.api.request_models.tests import ToolCallRequest
 
+# settings
+from portable_brain.config.app_config import get_service_settings
+
+settings = get_service_settings()
+
 router = APIRouter(prefix="/execution-test", tags=["Tests"])
 
 @router.post("/tool-call")
@@ -51,7 +56,12 @@ async def rag_execution_test(
     - yes augmented context
     """
     main_orchestrator = MainOrchestrator(execution_agent, retrieval_agent)
-    result = await main_orchestrator.run(request.user_request)
+    result = await main_orchestrator.run(
+        user_request=request.user_request,
+        max_iterations=settings.orchestrator_max_iterations,
+        execution_agent_max_turns=settings.execution_agent_max_turns,
+        retrieval_agent_max_turns=settings.retrieval_agent_max_turns
+    )
     logger.info(f"RAG execution test result: {result}")
     return {"result": result}
 
@@ -66,7 +76,10 @@ async def direct_execution_test(
     - no augmented context
     """
     
-    result = await execution_agent.mocked_execute_command(request.user_request)
+    result = await execution_agent.mocked_execute_command(
+        user_request=request.user_request,
+        max_turns=settings.execution_agent_max_turns
+    )
     logger.info(f"No augmented context execution test result: {result}")
     return {"result": result}
 

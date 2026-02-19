@@ -67,7 +67,7 @@ class RetrievalAgent():
             # "get_embedding_for_observation": self.memory_retriever.get_embedding_for_observation,
         }
 
-    async def test_retrieve(self, user_request: str):
+    async def test_retrieve(self, user_request: str, max_turns: int = 5):
         """
         Test helper to run a single retrieval pass against memory.
         Returns the LLM's final text response (expected to be MemoryRetrievalLLMOutput JSON).
@@ -78,5 +78,5 @@ class RetrievalAgent():
             function_declarations=memory_retriever_declarations_for_testing,
             tool_executors=self._build_tool_executors_for_testing(),
             response_model=MemoryRetrievalLLMOutput,
-            max_turns=5,
+            max_turns=max_turns,
         )

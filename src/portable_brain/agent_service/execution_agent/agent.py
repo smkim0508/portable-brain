@@ -51,17 +51,17 @@ class ExecutionAgent():
         )
     
     # baseline test: full prompt structure but no augmented context
-    async def mocked_execute_command(self, user_request: str):
+    async def mocked_execute_command(self, user_request: str, max_turns: int = 5):
         return await self.llm_client.atool_call(
             system_prompt=DeviceExecutionPrompts.direct_execution_system_prompt,
             user_prompt=user_request,
             function_declarations=[droidrun_execution_declaration],
             tool_executors={"execute_command": self.droidrun_client.execute_command},
             response_model=ExecutionLLMOutput,
-            max_turns=5,
+            max_turns=max_turns,
         )
     
-    async def execute_command(self, user_request: str, context: str):
+    async def execute_command(self, user_request: str, context: str, max_turns: int = 5):
         """
         Main tool calling method to execute commands on device, with relevant memory context
 
@@ -76,6 +76,5 @@ class ExecutionAgent():
             function_declarations=[droidrun_execution_declaration],
             tool_executors={"execute_command": self.droidrun_client.execute_command},
             response_model=ExecutionLLMOutput,
-            max_turns=5,
+            max_turns=max_turns,
         )
-

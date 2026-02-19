@@ -63,6 +63,15 @@ class ServiceSettings(
         # NOTE: use env_nested_delimiter="__" to allow nested env vars in future
     )
 
+    # orchestrator settings
+    orchestrator_max_iterations: int = 3
+
+    # execution agent settings
+    execution_agent_max_turns: int = 5
+
+    # retrieval agent settings
+    retrieval_agent_max_turns: int = 5
+
 # use lru cache to return a cached instance of service settings
 # NOTE: makes settings accessible from anywhere in the app, without being request-scope
 @lru_cache()
