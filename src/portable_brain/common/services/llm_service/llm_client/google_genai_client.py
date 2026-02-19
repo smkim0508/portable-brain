@@ -1,7 +1,7 @@
 # The core async set up for Google's GenAI LLM client
 # NOTE: Can be swapped for different LLM providers if necessary
 
-from typing import Type, Any, Callable, Awaitable
+from typing import Type, Any, Callable, Awaitable, Optional
 from pydantic import BaseModel, ValidationError
 # use tenacity to retry when desired
 from tenacity import AsyncRetrying, stop_after_attempt, wait_fixed, retry_if_exception_type
@@ -108,18 +108,23 @@ class AsyncGenAITypedClient(TypedLLMProtocol, ProvidesProviderInfo):
         user_prompt: str,
         function_declarations: list[dict],
         tool_executors: dict[str, Callable[..., Awaitable[Any]]],
+        response_model: Optional[Type[PydanticModel]] = None,
         max_turns: int = 5,
         **kwargs,
-    ) -> str:
+    ) -> str | PydanticModel:
         """
         Helper to create async requests to LLM for tool calling purposes.
         Supports multi-turn execution and retries on API failures.
 
         Returns: the final text response from the LLM after all tool calls are resolved.
+        - Optionally, the final response is parsed into a Pydantic model if a response_model is provided.
         NOTE: no tenacity retryer yet; to be implemented as an inner loop wrapper.
         """
         # wrap function declarations in tool and config objects
         tools = types.Tool(function_declarations=function_declarations) # type: ignore
+
+        # NOTE: it is possible to optionally add pydantic schema here, but this might cause competitinng output goals for LLM.
+        # disallowed until future experiments
         config = types.GenerateContentConfig(
             system_instruction=system_prompt,
             tools=[tools],
@@ -148,7 +153,15 @@ class AsyncGenAITypedClient(TypedLLMProtocol, ProvidesProviderInfo):
 
             if tool_call is None or tool_call.name is None:
                 # NOTE: LLM responded with text, not a tool call, so we're done
-                return resp.text or ""
+                text = resp.text or ""
+                # if response model is provided, try to validate and return
+                if response_model:
+                    # NOTE: need to add retry logic if this fails in production
+                    try:
+                        return response_model.model_validate_json(text)
+                    except:
+                        logger.warning(f"Failed to validate LLM response as {response_model.__name__}. Returning raw text.")
+                return text
 
             # LLM requested a tool call, dispatch to the appropriate executor
             tool_name = tool_call.name
