@@ -95,6 +95,5 @@ async def direct_droidrun_execution_test(
     """
     
     result = await droidrun_client.execute_command(request.user_request)
-    # NOTE: result is ResultEvent obj from droidrun w/ no __repr__, so need to be formatted to log
-    logger.info(f"Direct DroidRun execution test result: {result.__dict__}")
-    return {"result": result}
+    logger.info(f"Direct DroidRun execution test result: {result.model_dump()}")
+    return {"result": result.model_dump()}

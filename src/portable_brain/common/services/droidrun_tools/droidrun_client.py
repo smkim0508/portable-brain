@@ -48,7 +48,7 @@ from portable_brain.monitoring.background_tasks.types.action.actions import (
     # TBD
 )
 # Execution Result DTO
-from portable_brain.common.services.droidrun_tools.common.execution_types import ExecutionResult
+from portable_brain.common.services.droidrun_tools.common.execution_types import ExecutionResult, RawExecutionResult
 
 def ensure_connected(func):
     """
@@ -178,8 +178,8 @@ class DroidRunClient:
         self,
         enriched_command: str,
         reasoning: bool = False,
-        timeout: int = 120,
-    ) -> ResultEvent:
+        timeout: int = 120, # unused right now
+    ) -> RawExecutionResult:
         """
         Execute enriched natural language command via DroidAgent.
 
@@ -194,18 +194,16 @@ class DroidRunClient:
             timeout: Command timeout in seconds
 
         Returns:
-            ResultEvent with:
-                - success: bool
-                - reason: str (explanation or answer)
-                - steps: int (number of steps taken)
-                - structured_output: Optional[BaseModel] (if output_model was provided)
+            RawExecutionResult with:
+            - timestamp: datetime
+            - command: str
+            - success: bool
+            - reason: str (explanation or answer)
+            - steps: int (number of steps taken)
+            - structured_output: Optional[BaseModel] (if output_model was provided)
 
-        Example:
-            result = await client.execute_command(
-                "Open Settings and tell me the Android version"
-            )
-            print(f"Success: {result.success}")
-            print(f"Answer: {result.reason}")
+        NOTE: not to be confused with ExecutionResult, which has additional metadata.
+        - For internal usage, but not exposed yet to ExecutionAgent
         """
         if not self.llm or self.disable_llm:
             raise ValueError("LLM instance required for execute_command() - OBSERVATION ONLY MODE.")
@@ -235,8 +233,8 @@ class DroidRunClient:
         state_after_raw = await self.tools.get_state()
         state_after = self._format_raw_ui_state(state_after_raw)
 
-        # Record execution for memory agent
-        execution_record = ExecutionResult(
+        # Record full execution result to history
+        full_execution_result = ExecutionResult(
             timestamp=datetime.now(),
             command=enriched_command,
             success=result.success,
@@ -245,13 +243,23 @@ class DroidRunClient:
             state_before=state_before,
             state_after=state_after,
             change_type=self._classify_change(state_before, state_after),
+            structured_output=result.structured_output,
         )
+        self.execution_history.append(full_execution_result)
 
-        self.execution_history.append(execution_record)
         # update states
         self.last_state = state_after
 
-        return result
+        # NOTE: returns a more minimal result to agent for now.
+        # TODO: once execution agent becomes multi-turn, consider appending full context.
+        return RawExecutionResult(
+            timestamp=datetime.now(),
+            command=enriched_command,
+            success=result.success,
+            reason=result.reason,
+            steps=result.steps,
+            structured_output=result.structured_output
+        )
 
     # =====================================================================
     # LOW-LEVEL INTERFACE: Monitor Device State

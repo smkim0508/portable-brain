@@ -4,7 +4,13 @@
 # NOTE: the declaration telling LLM what/how to use this external function
 droidrun_execution_declaration = {
     "name": "execute_command",
-    "description": "Execute a natural language command on the user's Android device. The command should be a clear, enriched instruction describing the action to perform on the phone.",
+    "description": (
+        "Execute a natural language command on the user's Android device. "
+        "The command should be a clear, enriched instruction describing the action to perform on the phone. "
+        "Returns a result object with: success (bool), reason (str — explanation or answer from the device agent), "
+        "steps (int — number of steps taken), command (str — the command that was executed), "
+        "and timestamp (datetime)."
+    ),
     "parameters": {
         "type": "object",
         "properties": {

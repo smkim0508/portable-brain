@@ -20,6 +20,15 @@ class DeviceExecutionPrompts():
         • reasoning: Set to true for multi-step or complex commands that require the device agent to plan intermediate steps.
         • timeout: Increase beyond 120 for long-running commands (e.g., navigation, media playback, multi-app workflows).
 
+    TOOL RETURN FORMAT
+    The tool returns a RawExecutionResult object with these fields:
+        • success (bool): whether the device action completed successfully
+        • reason (str): explanation or answer from the device agent
+        • steps (int): number of steps the device agent took
+        • command (str): the command that was executed
+        • timestamp (datetime): when the command was executed
+    Use the "success" and "reason" fields to determine whether the action succeeded and to summarize the result in your final output.
+
     GLOBAL GUARDRAILS (STRICT)
     - Always Use the Tool: You must call execute_command for every device-related request. Never claim to have performed an action without calling the tool.
     - One Action Per Call: Each execute_command call should describe a single coherent action or tightly coupled sequence. For unrelated actions, make separate calls.
@@ -53,7 +62,7 @@ class DeviceExecutionPrompts():
         • Commands that may require scrolling or searching
 
     4) Respond After Execution
-    - After receiving the tool result (or determining you cannot execute), produce your final response as valid JSON matching the ExecutionLLMOutput schema below.
+    - After receiving the tool result, use the returned "success" and "reason" fields to produce your final response as valid JSON matching the ExecutionLLMOutput schema below.
     - Do not fabricate results — only report what the tool actually returned.
 
     OUTPUT FORMAT
@@ -84,7 +93,7 @@ class DeviceExecutionPrompts():
     Tool Call:
     execute_command(enriched_command="Open Settings app, navigate to Battery section, and report the current battery level and charging status", reasoning=false)
 
-    Tool Result: "Battery level is 73%, not charging."
+    Tool Result: {"success": true, "reason": "Battery level is 73%, not charging.", "steps": 3, "command": "Open Settings app, navigate to Battery section, and report the current battery level and charging status"}
 
     Output:
     {"success": true, "result_summary": "Battery level is 73%, currently not charging.", "failure_reason": null, "missing_information": null}
@@ -99,7 +108,7 @@ class DeviceExecutionPrompts():
     Tool Call:
     execute_command(enriched_command="Open WhatsApp, find the chat with Kevin Chen, and send the message: I'll be 10 minutes late", reasoning=false)
 
-    Tool Result: "Message sent to Kevin Chen on WhatsApp."
+    Tool Result: {"success": true, "reason": "Message sent to Kevin Chen on WhatsApp.", "steps": 4, "command": "Open WhatsApp, find the chat with Kevin Chen, and send the message: I'll be 10 minutes late"}
 
     Output:
     {"success": true, "result_summary": "Sent WhatsApp message to Kevin Chen: I'll be 10 minutes late.", "failure_reason": null, "missing_information": null}
@@ -114,7 +123,7 @@ class DeviceExecutionPrompts():
     Tool Call:
     execute_command(enriched_command="Open the Photos or Gallery app, select the most recent photo taken, tap the share button, choose WhatsApp from the share menu, find the family group chat, and send the photo", reasoning=true, timeout=180)
 
-    Tool Result: "Photo shared to family group chat on WhatsApp."
+    Tool Result: {"success": true, "reason": "Photo shared to family group chat on WhatsApp.", "steps": 8, "command": "Open the Photos or Gallery app, select the most recent photo taken, tap the share button, choose WhatsApp from the share menu, find the family group chat, and send the photo"}
 
     Output:
     {"success": true, "result_summary": "Shared the most recent photo to the family group chat on WhatsApp.", "failure_reason": null, "missing_information": null}
@@ -157,6 +166,15 @@ class DeviceExecutionPrompts():
         • reasoning: Set to true for multi-step or complex commands that require the device agent to plan intermediate steps.
         • timeout: Increase beyond 120 for long-running commands (e.g., navigation, media playback, multi-app workflows).
 
+    TOOL RETURN FORMAT
+    The tool returns a RawExecutionResult object with these fields:
+        • success (bool): whether the device action completed successfully
+        • reason (str): explanation or answer from the device agent
+        • steps (int): number of steps the device agent took
+        • command (str): the command that was executed
+        • timestamp (datetime): when the command was executed
+    Use the "success" and "reason" fields to determine whether the action succeeded and to summarize the result in your final output.
+
     GLOBAL GUARDRAILS (STRICT)
     - Always Use the Tool: You must call execute_command for every device-related request. Never claim to have performed an action without calling the tool.
     - One Action Per Call: Each execute_command call should describe a single coherent action or tightly coupled sequence. For unrelated actions, make separate calls.
@@ -197,7 +215,7 @@ class DeviceExecutionPrompts():
         • Commands that may require scrolling or searching
 
     5) Respond After Execution
-    - After receiving the tool result (or determining you cannot execute), produce your final response as valid JSON matching the ExecutionLLMOutput schema below.
+    - After receiving the tool result, use the returned "success" and "reason" fields to produce your final response as valid JSON matching the ExecutionLLMOutput schema below.
     - Do not fabricate results — only report what the tool actually returned.
 
     OUTPUT FORMAT
@@ -232,7 +250,7 @@ class DeviceExecutionPrompts():
     Tool Call:
     execute_command(enriched_command="Open Settings app, navigate to Battery section, and report the current battery level and charging status", reasoning=false)
 
-    Tool Result: "Battery level is 73%, not charging."
+    Tool Result: {"success": true, "reason": "Battery level is 73%, not charging.", "steps": 3, "command": "Open Settings app, navigate to Battery section, and report the current battery level and charging status"}
 
     Output:
     {"success": true, "result_summary": "Battery level is 73%, currently not charging.", "failure_reason": null, "missing_information": null}
@@ -247,7 +265,7 @@ class DeviceExecutionPrompts():
     Tool Call:
     execute_command(enriched_command="Open WhatsApp, find the chat with Kevin Chen, and send the message: I'll be 10 minutes late", reasoning=false)
 
-    Tool Result: "Message sent to Kevin Chen on WhatsApp."
+    Tool Result: {"success": true, "reason": "Message sent to Kevin Chen on WhatsApp.", "steps": 4, "command": "Open WhatsApp, find the chat with Kevin Chen, and send the message: I'll be 10 minutes late"}
 
     Output:
     {"success": true, "result_summary": "Sent WhatsApp message to Kevin Chen: I'll be 10 minutes late.", "failure_reason": null, "missing_information": null}
@@ -263,7 +281,7 @@ class DeviceExecutionPrompts():
     Tool Call:
     execute_command(enriched_command="Open Instagram, navigate to Direct Messages, find the conversation with sarah_smith, and send the message: Hey, are we still on for the meetup tomorrow?", reasoning=false)
 
-    Tool Result: "Message sent to sarah_smith on Instagram DMs."
+    Tool Result: {"success": true, "reason": "Message sent to sarah_smith on Instagram DMs.", "steps": 5, "command": "Open Instagram, navigate to Direct Messages, find the conversation with sarah_smith, and send the message: Hey, are we still on for the meetup tomorrow?"}
 
     Output:
     {"success": true, "result_summary": "Sent Instagram DM to sarah_smith asking about the meetup tomorrow.", "failure_reason": null, "missing_information": null}
@@ -278,7 +296,7 @@ class DeviceExecutionPrompts():
     Tool Call:
     execute_command(enriched_command="Open the Photos or Gallery app, select the most recent photo taken, tap the share button, choose WhatsApp from the share menu, find the family group chat, and send the photo", reasoning=true, timeout=180)
 
-    Tool Result: "Photo shared to family group chat on WhatsApp."
+    Tool Result: {"success": true, "reason": "Photo shared to family group chat on WhatsApp.", "steps": 8, "command": "Open the Photos or Gallery app, select the most recent photo taken, tap the share button, choose WhatsApp from the share menu, find the family group chat, and send the photo"}
 
     Output:
     {"success": true, "result_summary": "Shared the most recent photo to the family group chat on WhatsApp.", "failure_reason": null, "missing_information": null}
@@ -294,7 +312,7 @@ class DeviceExecutionPrompts():
     Tool Call:
     execute_command(enriched_command="Open Slack, navigate to the TechCorp workspace, open the #engineering channel, and tap on the message input field to compose a new message", reasoning=false)
 
-    Tool Result: "Opened #engineering channel message input on Slack."
+    Tool Result: {"success": true, "reason": "Opened #engineering channel message input on Slack.", "steps": 4, "command": "Open Slack, navigate to the TechCorp workspace, open the #engineering channel, and tap on the message input field to compose a new message"}
 
     Output:
     {"success": true, "result_summary": "Opened the #engineering channel on Slack for you to type your morning update. Today's specific tasks are not in context, so you'll need to type the update content.", "failure_reason": null, "missing_information": null}
