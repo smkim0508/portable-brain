@@ -21,6 +21,7 @@ import logging
 from typing import Any, Dict, List, Optional, Tuple
 from datetime import datetime
 from functools import wraps
+import re
 import uuid
 
 # DroidRun SDK imports
@@ -340,15 +341,21 @@ class DroidRunClient:
         # use helper to format raw state into DTO
         current_state = self._format_raw_ui_state(current_state_raw)
 
+        # returns None if no change
+        # 1) no previous state
+        # 2) state change classified to be NO_CHANGE
+
+        # case 1)
         if self.last_state is None:
             self.last_state = current_state
             return None
 
+        # case 2)
         change_type = self._classify_change(self.last_state, current_state)
-
         if change_type == StateChangeType.NO_CHANGE:
             return None
         
+        # otherwise, update the last state and return the change
         change_event = UIStateChange(
             timestamp=datetime.now(),
             change_type=change_type,
@@ -357,8 +364,8 @@ class DroidRunClient:
             source=StateChangeSource.OBSERVATION,
             description=None # NOTE: to be added w/ LLM summarization, only on core changes or w/ hashed look-up
         )
-
         self.last_state = current_state
+
         return change_event
 
     @ensure_connected
@@ -538,7 +545,7 @@ class DroidRunClient:
         )
 
         return current_state
-    
+
     def _classify_change(self, before: UIState, after: UIState) -> StateChangeType:
         """
         Classify type of UI change between two states.
@@ -579,6 +586,4 @@ class DroidRunClient:
         elif diff > 5:
             return StateChangeType.MINOR_LAYOUT_CHANGE
         else:
-            return StateChangeType.CONTENT_NAVIGATION # navigation is currently just in between major/minor screen changes.
-        
-# NOTE: example usage should be moved to eternal test scripts
+            return StateChangeType.CONTENT_NAVIGATION # NOTE: navigation is less than a minor layout change
