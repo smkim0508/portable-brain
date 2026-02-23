@@ -118,14 +118,15 @@ class ObservationTracker(ObservationRepository):
                     self.recent_state_changes.append(change)
                     logger.info(f"Detected state change: {change.change_type}")
                     
-                    # if APP_SWITCH change, simply append the before and after packages to
+                    # if APP_SWITCH change, first append the before and after app packages to state snapshots
                     if change.change_type == StateChangeType.APP_SWITCH:
-                        pass
+                        self.state_snapshots.append(f"APP SWITCH: from {change.before.package} to {change.after.package}")
 
-                    # infer what action might have caused this change
-                    inferred_action = self._infer_action(change)
-                    # store inferred actions
-                    self.inferred_actions.append(inferred_action)
+                    # For both CHANGED and APP_SWITCH, should append the AFTER state's formatted_text field to state snapshots, alongside activity info
+                    self.state_snapshots.append(f"{change.after.formatted_text}\n • **Activity:** {change.after.activity.activity}")
+
+                    # no more fragile inference on actions
+                    # TODO: update the logic below to use state snapshots, not actions
 
                     self.action_counter += 1
                     # penultimate step, create observation node every context_size actions

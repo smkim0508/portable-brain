@@ -522,6 +522,9 @@ class DroidRunClient:
         Returns:
             Formatted UI state DTO
         """
+        # unpack raw state tuple from DroidRun SDK
+        formatted_text, raw_focused_element, ui_elements, phone_state = raw_state
+
         raw_tree = self.tools.raw_tree_cache
         # TODO: make a hash w/ this tree
         # TODO: make a hash of the raw UI state, check history to fetch state_id if exists or make new.
@@ -531,19 +534,20 @@ class DroidRunClient:
 
         # parse focused_element safely - handle non-numeric values
         focused_element = None
-        if raw_state[1]:
+        if raw_focused_element:
             try:
-                focused_element = int(raw_state[1])
+                focused_element = int(raw_focused_element)
             except (ValueError, TypeError):
                 # if focused_element is non-numeric (e.g., "YouTube"), set to None
                 focused_element = None
 
         current_state = UIState(
             state_id=state_id,
-            package=raw_state[3]["packageName"],
-            activity=UIActivity(activity=raw_state[3].get("activityName", "unknown")),
-            ui_elements=raw_state[2],
+            package=phone_state["packageName"],
+            activity=UIActivity(activity=phone_state.get("activityName", "unknown")),
+            ui_elements=ui_elements,
             focused_element=focused_element,
+            formatted_text=denoise_formatted_text(formatted_text),
             raw_tree=raw_tree,
         )
 
