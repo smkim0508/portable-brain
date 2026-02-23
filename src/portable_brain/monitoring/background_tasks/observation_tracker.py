@@ -379,8 +379,15 @@ class ObservationTracker(ObservationRepository):
         # Clear the task reference after cleanup
         self._tracking_task = None
 
-        # Flush the latest observation to db, since it's never saved by normal flow
+        # Flush the latest snapshots AND observation to db, since it's never saved by normal flow
         # NOTE: _save_observation() only persists the *previous* observation when a new one is created.
+
+        # First create an observation with the last remaining state snapshots
+        # use snapshot_counter (not snapshot_context_size) to avoid overlapping already-processed snapshots
+        new_observation = await self._create_or_update_observation(context_size=self.snapshot_counter) if self.snapshot_counter > 0 else None
+        if new_observation:
+            await self._save_observation(new_observation)
+        # Then flush the remaining observation
         if self.observations:
             last_observation = self.observations[-1]
             # NOTE: this uses a convenience wrapper that handles both embedding generation and saving
@@ -434,6 +441,12 @@ class ObservationTracker(ObservationRepository):
                 if new_observation:
                     await self._save_observation(new_observation)
                 self.snapshot_counter = 0
+
+        # make final observation for any leftover snapshots not yet processed
+        # use snapshot_counter (not snapshot_context_size) to avoid overlapping already-processed snapshots
+        new_observation = await self._create_or_update_observation(context_size=self.snapshot_counter) if self.snapshot_counter > 0 else None
+        if new_observation:
+            await self._save_observation(new_observation)
 
         # flush the last node
         # NOTE: add more saving logic here if we want more than just text log
