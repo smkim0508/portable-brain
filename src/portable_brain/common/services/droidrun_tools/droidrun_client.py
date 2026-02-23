@@ -338,7 +338,6 @@ class DroidRunClient:
 
         Use this for continuous monitoring in background tasks.
         NOTE: this is the primary method called by observation tracker to detect state changes and use state.
-        TODO: This should reflect using canonical UI State DTOs.
         """
         # fetches the raw UI state
         current_state_raw = await self.tools.get_state()

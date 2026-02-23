@@ -10,22 +10,12 @@ from portable_brain.common.logging.logger import logger
 # Base repository for all observations
 from portable_brain.monitoring.observation_repository import ObservationRepository
 
-# Canonical DTOs for UI state, state snapshots, inferred action, observations
+# Canonical DTOs for UI state, state snapshots, observations
 from portable_brain.monitoring.background_tasks.types.ui_states.ui_state import UIState, UIActivity
 from portable_brain.monitoring.background_tasks.types.ui_states.state_changes import UIStateChange, StateChangeSource
 from portable_brain.monitoring.background_tasks.types.ui_states.state_change_types import StateChangeType
 from portable_brain.monitoring.background_tasks.types.ui_states.state_snapshot import UIStateSnapshot
-from portable_brain.monitoring.background_tasks.types.action.action_types import ActionType
-from portable_brain.monitoring.background_tasks.types.action.actions import (
-    Action,
-    AppSwitchAction,
-    UnknownAction,
-    InstagramMessageSentAction,
-    InstagramPostLikedAction,
-    WhatsAppMessageSentAction,
-    SlackMessageSentAction,
-    # TBD
-)
+
 from portable_brain.monitoring.background_tasks.types.observation.observations import (
     Observation,
     LongTermPeopleObservation,
@@ -63,7 +53,6 @@ class ObservationTracker(ObservationRepository):
     Complements DroidRunClient.execution_history which only tracks agent-executed actions via execute_command()
 
     TODO: finish implementing this tracker.
-    - Also create canonical DTO for observations and enums for actions
     """
 
     def __init__(self, droidrun_client: DroidRunClient, llm_client: TypedLLMClient, text_embedding_client: TypedTextEmbeddingClient, main_db_engine: AsyncEngine):
@@ -77,15 +66,11 @@ class ObservationTracker(ObservationRepository):
         self.running = False
         self._tracking_task: Optional[asyncio.Task] = None
         self.snapshot_counter: int = 0
- 
-        # track the 50 most recent inferred actions
-        # NOTE: deprecated, to be removed
-        self.inferred_actions: deque[Action] = deque(maxlen=50)
 
         # track the 50 most recent state snapshots as structured DTOs
         self.state_snapshots: deque[UIStateSnapshot] = deque(maxlen=50)
 
-        # track the 20 most recent high-level observations based on inferred actions
+        # track the 20 most recent high-level observations based on semantic state snapshots
         # NOTE: observations look at prev. records to update
         self.observations: deque[Observation] = deque(maxlen=20)
 
@@ -140,12 +125,15 @@ class ObservationTracker(ObservationRepository):
                             # save observation to memory db and local history
                             # TODO: this helper should evict the old observation, save that to db, and add new observation to local history
                             await self._save_observation(new_observation)
+
+                            # TODO: final step, should be handled by memory handler in future
+                            # NOTE: this step is to ensure new observations are processed in memory to do temporal update / rearranging
+                            # await self.memory_handler.process_observation(observation)
+
                         # reset counter
                         self.snapshot_counter = 0
 
-                    # TODO: final step, should be handled by memory handler in future
-                    # await self.memory_handler.process_observation(observation)
-                    # shorter cooldown if state change HAS been found -> likely another action might pursue
+                    # shorter cooldown if state change HAS been found -> likely another state change might pursue
                     await asyncio.sleep(0.2)
                 else:
                     await asyncio.sleep(poll_interval) # cooldown after each iteration
@@ -156,15 +144,15 @@ class ObservationTracker(ObservationRepository):
 
     async def _create_or_update_observation(self, context_size: int = 10) -> Optional[Observation]:
         """
-        Creates a final observation object based on the current history of actions.
+        Creates a final observation object based on the current history of state snapshots.
             - An observation object will be one of the possible memory nodes.
-        This is a high-level abstraction derived from a union of low-level actions.
+        This is a high-level abstraction derived from a union of low-level UI snapshots.
         NOTE: observation is what's ultimately stored in the memory.
         - Returns None if no meaningful observation can be made.
 
         Observations are made in a continuous, sequential environment, so to prevent duplicates:
-            - Utilize an appropriate window size of actions (context_size)
-                - This helper should only be called every context_size new actions are recorded
+            - Utilize an appropriate window size of snapshots (context_size)
+                - This helper should only be called every context_size new snapshots are recorded
             - Look at previous time step's observation, and either update it based on new context or create a new observation
 
         NOTE: if a previous observation should be updated, handles local history and returns None
@@ -251,7 +239,7 @@ class ObservationTracker(ObservationRepository):
     def get_observations(
         self,
         limit: Optional[int] = None,
-    ) -> List: # need observation DTO
+    ) -> list[Observation]:
         """
         Get observation history.
         TODO: need an observation DTO.
@@ -353,7 +341,7 @@ class ObservationTracker(ObservationRepository):
     
     async def pause_tracking(self) -> bool:
         """
-        Simply pause observation tracking, without resetting the local history.
+        Simply pause observation tracking, without resetting the internal states / history.
         NOTE: to re-activate tracking after pausing, run start_background_tracking() again.
         If background tracker is not running, does nothing.
 
@@ -371,6 +359,7 @@ class ObservationTracker(ObservationRepository):
         """
         Stop observation tracking and wait for cleanup.
         Call this in lifespan shutdown.
+        - Flushes the latest observation to DB and clears internal states / history.
         """
         self.running = False
 
@@ -404,6 +393,11 @@ class ObservationTracker(ObservationRepository):
                 logger.info(f"Flushed last observation to TEXT LOG on shutdown: {last_observation.node}")
             except Exception as e:
                 logger.error(f"Failed to flush last observation on shutdown: {e}")
+
+        # clear all internal states of previous tracking
+        self.clear_observations()
+        self.clear_state_snapshots()
+        self.clear_state_changes()
     
     async def create_test_observation(self, context_size: int = 10) -> Optional[Observation]:
         """
