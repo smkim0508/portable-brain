@@ -320,41 +320,6 @@ class ObservationTracker(ObservationRepository):
         # saves new observation to local history
         self.observations.append(new_observation)
             
-    def get_inferred_actions(
-        self,
-        limit: Optional[int] = None,
-        change_types: Optional[list[StateChangeType]] = None,
-    ) -> List[Action]:
-        """
-        Get inferred actions history.
-        NOTE: only upto 50 recent actions are stored
-
-        Args:
-            limit: Max observations to return
-            change_types: Filter by change type enums.
-
-        Returns:
-            List of observations
-            NOTE: the bottom index in returned list is the most recent, so return is reversed.
-        """
-        # wrap in list to allow negative idx slicing
-        inferred_actions = list(self.inferred_actions)
-
-        # optional filtering by change type
-        if change_types:
-            inferred_actions = [
-                action for action in inferred_actions
-                if action.source_change_type in set(change_types)
-            ]
-
-        # optional filtering by number of actions limit
-        if limit:
-            inferred_actions = inferred_actions[-limit:] # takes the last limit number of inferred actions
-        
-        inferred_actions.reverse() # make the first observation the most recent
-
-        return inferred_actions
-
     def get_state_snapshots(
         self,
         limit: Optional[int] = None,
@@ -443,10 +408,6 @@ class ObservationTracker(ObservationRepository):
         """Clear observation history after persisting to DB."""
         self.observations.clear()
 
-    def clear_inferred_actions(self):
-        """Clear inferred action history after persisting to DB."""
-        self.inferred_actions.clear()
-
     def clear_state_snapshots(self):
         """Clear state snapshots history after persisting to DB."""
         self.state_snapshots.clear()
@@ -462,7 +423,7 @@ class ObservationTracker(ObservationRepository):
         Currently supports fetching the length of each history.
         """
         return {
-            "inferred_actions": len(self.inferred_actions),
+            "state_snapshots": len(self.state_snapshots),
             "observations": len(self.observations),
             "state_changes": len(self.recent_state_changes),
         }

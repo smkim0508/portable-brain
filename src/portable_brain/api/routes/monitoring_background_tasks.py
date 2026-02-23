@@ -96,34 +96,19 @@ def retrieve_recent_state_changes(
         logger.error(f"Error retrieving recent state change history: {e}")
         return {"message": f"Error retrieving recent state change history: {e}"}, 500
 
-# inferred action history
-@router.post("/clear-inferred-actions")
-def clear_inferred_actions(
+# state snapshots history
+@router.post("/clear-state-snapshots")
+def clear_state_snapshots(
     droidrun_client: DroidRunClient = Depends(get_droidrun_client),
     observation_tracker: ObservationTracker = Depends(get_observation_tracker),
 ):
     try:
-        observation_tracker.clear_inferred_actions()
-        return {"message": "successfully cleared inferred action history!"}
+        observation_tracker.clear_state_snapshots()
+        return {"message": "successfully cleared state snapshots history!"}
     except Exception as e:
-        logger.error(f"Error clearing inferred action history: {e}")
-        return {"message": f"Error clearing inferred action history: {e}"}, 500
+        logger.error(f"Error clearing state snapshots history: {e}")
+        return {"message": f"Error clearing state snapshots history: {e}"}, 500
     
-@router.get("/get-inferred-actions")
-def retrieve_inferred_actions(
-    limit: Optional[int] = Query(default=None, ge=1, le=10),
-    droidrun_client: DroidRunClient = Depends(get_droidrun_client),
-    observation_tracker: ObservationTracker = Depends(get_observation_tracker),
-):
-    try:
-        # NOTE: only retrieve the most recent observations by limit
-        logger.info(f"Retrieving inferred action history with limit: {limit}")
-        actions = observation_tracker.get_inferred_actions(limit=limit)
-        return {"actions": actions}, 200
-    except Exception as e:
-        logger.error(f"Error retrieving inferred action history: {e}")
-        return {"message": f"Error retrieving inferred action history: {e}"}, 500
-
 @router.get("get-state-snapshots")
 def retrieve_state_snapshots(
     limit: Optional[int] = Query(default=None, ge=1, le=10),
