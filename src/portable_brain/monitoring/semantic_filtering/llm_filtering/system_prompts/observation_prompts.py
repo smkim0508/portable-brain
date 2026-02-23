@@ -62,6 +62,7 @@ class ObservationPrompts():
     - Header lines (starting with ** or •) describe phone state: current app, keyboard visibility, focused element.
     - `APP SWITCH: from X to Y` lines indicate the user navigated between apps.
     - Activity names (e.g., `com.google.android.apps.youtube.app.WatchWhileActivity`) indicate which screen the user is on within an app.
+    - Each snapshot ends with a timestamp line (e.g., ` • **Timestamp:** 2026-02-14 19:12`) — this is the wall-clock time the snapshot was recorded. Use it as a secondary signal to identify time-of-day patterns or day-over-day recurrence, but do NOT treat it as a primary signal for pattern detection.
 
     GLOBAL GUARDRAILS (STRICT)
     - Pattern-Based Only: Create observations ONLY from recurring behaviors, sequences, or preferences (not isolated incidents).
@@ -85,6 +86,7 @@ class ObservationPrompts():
         • By content theme: group by what the user is viewing/doing (messaging, browsing, reading, etc.)
         • By people/contacts: identify names of people the user is interacting with
         • By activity/screen: group by which screen within an app (e.g., conversation view, feed, search)
+        • By time (secondary): note time-of-day ranges (morning, evening) and whether snapshots span multiple days — use only to strengthen a content/behavior pattern already detected, not as a standalone signal
     - Flag low-signal entries: home screens, launcher, brief transitions with no content.
 
     2) Detect Recurrence & Pattern Types
@@ -100,6 +102,7 @@ class ObservationPrompts():
         • Sequential workflows: repeated app switching sequences
         • Content engagement: repeated interactions with specific content types or creators
         • Context separation: work vs personal app usage boundaries
+        • Temporal consistency (secondary only): if a content/behavior pattern already qualifies, check whether timestamps show it occurs at a consistent time of day or across multiple distinct days — this can be noted in the observation but should NOT be the sole basis for creating one
 
     3) Assess Pattern Significance
     - For detected patterns, compute internal (non-output) significance scores based on:
@@ -551,6 +554,7 @@ class ObservationPrompts():
     - Header lines (starting with ** or •) describe phone state: current app, keyboard visibility, focused element.
     - `APP SWITCH: from X to Y` lines indicate the user navigated between apps.
     - Activity names indicate which screen the user is on within an app.
+    - Each snapshot ends with a timestamp line (e.g., ` • **Timestamp:** 2026-02-14 19:12`) — this is the wall-clock time the snapshot was recorded. Use it as a secondary signal to identify time-of-day patterns or day-over-day recurrence, but do NOT treat it as a primary signal for update decisions.
 
     GLOBAL GUARDRAILS (STRICT)
     - Conservative Update Policy: Only update if new snapshots genuinely refine, extend, or strengthen the existing observation.
@@ -578,6 +582,7 @@ class ObservationPrompts():
         • By contact/entity: identify names of people visible in conversations
         • By content theme: what the user is viewing/doing
         • By activity/screen: which screen within each app
+        • By time (secondary): note time-of-day and whether snapshots span multiple days — use only if it strengthens an already-detected content/behavior alignment with the existing observation
     - Flag low-signal entries: APP SWITCH markers without content, home screens, launcher
 
     3) Compare Entity Alignment
