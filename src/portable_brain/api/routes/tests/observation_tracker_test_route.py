@@ -137,7 +137,7 @@ async def get_formatted_tree(
         raw_state = await droidrun_client.get_raw_state()
         state = await droidrun_client.get_current_state()
 
-        cleaned_text = denoise_formatted_text(raw_state)
+        cleaned_text = denoise_formatted_text(raw_state[0])
         raw_tree = await droidrun_client.get_raw_tree()
 
         return {

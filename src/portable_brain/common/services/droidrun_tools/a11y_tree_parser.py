@@ -1,5 +1,4 @@
 import re
-from typing import Tuple, Optional
 
 # NOTE: helper to parse the raw a11y tree into a more human-readable format without noise
 # used for LLM inference on actions without fragile guessing
@@ -21,20 +20,19 @@ _GENERIC_ACTIONS = {
     "more options", "more actions", "action menu",
 }
 
-def denoise_formatted_text(raw_state: Tuple, max_lines: int = 50) -> str:
+def denoise_formatted_text(formatted_text: str, max_lines: int = 50) -> str:
     """
-    Extracts and denoises formatted_text from a raw state tuple.
+    Denoises a formatted_text string from DroidRun's get_state().
     Filters to elements with human-readable text, strips resource IDs,
     deduplicates content, and removes generic action buttons.
 
     Args:
-        raw_state: Raw state tuple from get_state()
+        formatted_text: The formatted_text string (raw_state[0] from get_state())
         max_lines: Maximum number of lines to keep
 
     Returns:
         Compressed formatted text with header + text-bearing elements only
     """
-    formatted_text: str = raw_state[0]
     if not formatted_text:
         return ""
 
