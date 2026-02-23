@@ -35,10 +35,11 @@ class ScenarioName(str, Enum):
     MORNING_WORK_APP_ROUTINE = "morning_work_app_routine"
     CROSS_PLATFORM_CONTACT_COMMUNICATION = "cross_platform_contact_communication"
     INSTAGRAM_FITNESS_CONTENT_BROWSING = "instagram_fitness_content_browsing"
+    ONE_OFF_FOOD_DELIVERY = "one_off_food_delivery"
 
 class ReplayScenarioRequest(BaseModel):
     """
-    Request body for replaying a predefined action scenario through the observation tracker.
+    Request body for replaying a predefined state snapshot scenario through the observation tracker.
     """
     scenario_name: ScenarioName
 
