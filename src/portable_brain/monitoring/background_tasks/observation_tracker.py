@@ -70,7 +70,15 @@ class ObservationTracker(ObservationRepository):
         super().__init__(droidrun_client=droidrun_client, llm_client=llm_client, main_db_engine=main_db_engine)
         # tracker settings
         self.last_poll_interval: float = 1.0 # saves the last polling interval to preserve it after pauses
+        self.snapshot_context_size: int = 10
+        # deprecated settings
         self.action_context_size: int = 3 # NOTE: should be 10, number of previous actions to track before attempting to infer an observation
+
+        # tracker states
+        self.running = False
+        self._tracking_task: Optional[asyncio.Task] = None
+        self.snapshot_counter: int = 0
+        # deprecated states
         self.action_counter: int = 0 # counter to track the number of actions since last observation
         
         # track the 50 most recent inferred actions
@@ -87,10 +95,6 @@ class ObservationTracker(ObservationRepository):
 
         # store recent state changes as a queue w/ max length of 10 to avoid too much memory
         self.recent_state_changes: deque[UIStateChange] = deque(maxlen=10)
-
-        # tracker states
-        self.running = False
-        self._tracking_task: Optional[asyncio.Task] = None
 
         # observation helper
         self.inferencer = ObservationInferencer(droidrun_client=self.droidrun_client, llm_client=self.llm_client, main_db_engine=self.main_db_engine)
@@ -126,18 +130,17 @@ class ObservationTracker(ObservationRepository):
                     self.state_snapshots.append(f"{change.after.formatted_text}\n • **Activity:** {change.after.activity.activity}")
 
                     # no more fragile inference on actions
-                    # TODO: update the logic below to use state snapshots, not actions
 
-                    self.action_counter += 1
-                    # penultimate step, create observation node every context_size actions
-                    if self.action_counter >= self.action_context_size:
-                        new_observation = await self._create_or_update_observation(context_size=self.action_context_size)
+                    self.snapshot_counter += 1
+                    # penultimate step, create observation node every context_size snapshots
+                    if self.snapshot_counter >= self.snapshot_context_size:
+                        new_observation = await self._create_or_update_observation(context_size=self.snapshot_context_size)
                         if new_observation:
                             # save observation to memory db and local history
                             # TODO: this helper should evict the old observation, save that to db, and add new observation to local history
                             await self._save_observation(new_observation)
                         # reset counter
-                        self.action_counter = 0
+                        self.snapshot_counter = 0
 
                     # TODO: final step, should be handled by memory handler in future
                     # await self.memory_handler.process_observation(observation)
@@ -262,11 +265,12 @@ class ObservationTracker(ObservationRepository):
 
         NOTE: if a previous observation should be updated, handles local history and returns None
         """
-        # if no inferred actions, return; there are no observations to make or update
-        if not self.inferred_actions:
+        # if no state snapshots, return; there are no observations to make or update
+        if not self.state_snapshots:
+            logger.info("no state snapshots to create observation from")
             return None
         
-        recent_actions = list(self.inferred_actions)[-context_size:]
+        recent_snapshots = list(self.state_snapshots)[-context_size:]
         last_observation = self.observations[-1] if self.observations else None
 
         # create new observation or update previous
@@ -274,19 +278,19 @@ class ObservationTracker(ObservationRepository):
         updated_observation: Observation | None = None # conditionally update
         if last_observation:
             # if we have a recent observation, either update it or create new
-            # compare previous observation in the context of recent actions, try to update it
-            updated_observation = await self.inferencer.update_observation(last_observation, recent_actions)
+            # compare previous observation in the context of recent snapshots, try to update it
+            updated_observation = await self.inferencer.update_observation(last_observation, recent_snapshots)
         if not updated_observation:
             # if we reach here, then either no last observation, or there is nothing meaningful to update
-            # -> create new observation; look at recent actions and make a meaningful observation
-            logger.info(f"No update to make, creating new observation from recent actions.")
-            new_observation = await self.inferencer.create_new_observation(recent_actions)
-            logger.info(f"Created new observation from recent actions: {new_observation.node if new_observation else None}")
+            # -> create new observation; look at recent snapshots and make a meaningful observation
+            logger.info(f"No update to make, creating new observation from recent snapshots.")
+            new_observation = await self.inferencer.create_new_observation(recent_snapshots)
+            logger.info(f"Created new observation from recent snapshots: {new_observation.node if new_observation else None}")
             # NOTE: the parent caller will handle saving the cache-evicted observation to db
             return new_observation # may be None, which indicates no new, meaningful observation to make
         else:
             # there is a meaningful observation to update, so update local history and return None
-            logger.info(f"Updated observation from recent actions: {updated_observation.node}")
+            logger.info(f"Updated observation from recent snapshots: {updated_observation.node}")
             self.observations[-1] = updated_observation # replace last observation w/ updated
             return None
         
@@ -516,11 +520,11 @@ class ObservationTracker(ObservationRepository):
         # for now, just build a single observation to test
 
         # if no inferred actions, return; there are no observations to make
-        if not self.inferred_actions:
-            logger.info("no inferred actions to create observation from")
+        if not self.state_snapshots:
+            logger.info("no state snapshots to create observation from")
             return None
         
-        recent_actions = list(self.inferred_actions)[-context_size:]
+        recent_snapshots = list(self.state_snapshots)[-context_size:]
         last_observation = self.observations[-1] if self.observations else None
 
         # NOTE: test this after verifying creation works
@@ -538,7 +542,7 @@ class ObservationTracker(ObservationRepository):
 
         # for now, unconditional test
         # use helper to create observation
-        new_observation = await self.inferencer.test_create_new_observation(actions=recent_actions)
+        new_observation = await self.inferencer.test_create_new_observation(actions=recent_snapshots)
 
         # TODO: load in llm client and use semantic parsing
         # short -> long term storage is only relevant for preferences
