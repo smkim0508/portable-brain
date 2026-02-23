@@ -71,16 +71,12 @@ class ObservationTracker(ObservationRepository):
         # tracker settings
         self.last_poll_interval: float = 1.0 # saves the last polling interval to preserve it after pauses
         self.snapshot_context_size: int = 10
-        # deprecated settings
-        self.action_context_size: int = 3 # NOTE: should be 10, number of previous actions to track before attempting to infer an observation
 
         # tracker states
         self.running = False
         self._tracking_task: Optional[asyncio.Task] = None
         self.snapshot_counter: int = 0
-        # deprecated states
-        self.action_counter: int = 0 # counter to track the number of actions since last observation
-        
+ 
         # track the 50 most recent inferred actions
         # NOTE: deprecated, to be removed
         self.inferred_actions: deque[Action] = deque(maxlen=50)
@@ -152,103 +148,6 @@ class ObservationTracker(ObservationRepository):
             except Exception as e:
                 print(f"Observation tracking error: {e}")
                 await asyncio.sleep(5) # Back off on error
-
-    def _infer_action(self, change: UIStateChange) -> Action:
-        """
-        Infers a user action from recorded UI state change via rule-based classification.
-        Returns an Action object, based on change type and state metadata.
-        Returns UnknownAction if action can't be inferred.
-        """
-        # TODO: this is deprecated, need to resolve pre-inference of actions with rule-based classification 
-        return UnknownAction(
-            timestamp=change.timestamp,
-            source_change_type=change.change_type,
-            package=change.after.package,
-            source=change.source,
-            importance=0.0, # TEMP: for unknown actions, we override importance to 0.0
-            description=change.description,
-        )
-
-        # parse change
-        change_type: StateChangeType = change.change_type
-        before: UIState = change.before # states
-        after: UIState = change.after # states
-        curr_package: str = before.package # the current app is treated as the package BEFORE change
-
-        # TODO: infer all actions based on each change type and state metadata
-        if change.change_type == StateChangeType.APP_SWITCH:
-            logger.info(f"Inferred app switch action from change type: {change_type} and package: {before.package} to {after.package}")
-            return AppSwitchAction(
-                timestamp=change.timestamp,
-                source_change_type=change.change_type,
-                package=change.after.package,
-                source=change.source,
-                description=change.description,
-                src_package=change.before.package,
-                src_activity=change.before.activity,
-                dst_package=change.after.package,
-                dst_activity=change.after.activity,
-            )
-
-        # else, see if current app is supported
-        elif curr_package == AndroidApp.INSTAGRAM:
-            if change_type == StateChangeType.TEXT_INPUT:
-                logger.info(f"Inferred Instagram message sent action from change type: {change_type} and package: {curr_package}")
-                return InstagramMessageSentAction(
-                    timestamp=change.timestamp,
-                    source_change_type=change.change_type,
-                    actor_username=change.after.raw_tree.get("username", "unknown user") if change.after.raw_tree else "unknown user", # actor username
-                    target_username=change.after.raw_tree.get("target_username", "unknown user") if change.after.raw_tree else "unknown user", # target username
-                    source=change.source,
-                    # importance is set to default 1.0 for now
-                    description=change.description,
-                    message_summary=None, # should use UI states diff to infer message summary w/ LLM
-                )
-            # otherwise no other actions are supported for Instagram, so return unknown
-
-        elif curr_package == AndroidApp.WHATSAPP:
-            if change_type == StateChangeType.TEXT_INPUT:
-                logger.info(f"inferred WhatsApp message sent action from change type: {change_type} and package: {curr_package}")
-                return WhatsAppMessageSentAction(
-                    timestamp=change.timestamp,
-                    source_change_type=change.change_type,
-                    recipient_name=change.after.raw_tree.get("recipient_name", "unknown user") if change.after.raw_tree else "unknown user",
-                    is_dm=change.after.raw_tree.get("is_dm", False) if change.after.raw_tree else False,
-                    target_name=change.after.raw_tree.get("target_name", "unknown user") if change.after.raw_tree else "unknown user",
-                    source=change.source,
-                    # importance is set to default 1.0 for now
-                    description=change.description,
-                    message_summary=None,
-                )
-            # otherwise no other actions are supported for WhatsApp, so return unknown
-        
-        elif curr_package == AndroidApp.SLACK:
-            if change_type == StateChangeType.TEXT_INPUT:
-                logger.info(f"Inferred Slack message sent action from change type: {change_type} and package: {curr_package}")
-                return SlackMessageSentAction(
-                    timestamp=change.timestamp,
-                    source_change_type=change.change_type,
-                    workspace_name=change.after.raw_tree.get("workspace_name", "unknown workspace") if change.after.raw_tree else "unknown workspace",
-                    channel_name=change.after.raw_tree.get("channel_name", "unknown channel") if change.after.raw_tree else "unknown channel",
-                    thread_name=change.after.raw_tree.get("thread_name", None) if change.after.raw_tree else None,
-                    target_name=change.after.raw_tree.get("target_name", "unknown user") if change.after.raw_tree else "unknown user",
-                    source=change.source,
-                    # importance is set to default 1.0 for now
-                    description=change.description,
-                    message_summary=None,
-                )
-            # otherwise no other actions are supported for Slack, so return unknown
-
-        # if action can't be inferred, return UnknownAction 
-        logger.info(f"Unable to infer action from change type: {change_type} and package: {curr_package}")
-        return UnknownAction(
-            timestamp=change.timestamp,
-            source_change_type=change.change_type,
-            package=change.after.package,
-            source=change.source,
-            importance=0.0, # TEMP: for unknown actions, we override importance to 0.0
-            description=change.description,
-        )
 
     async def _create_or_update_observation(self, context_size: int = 10) -> Optional[Observation]:
         """
@@ -518,26 +417,24 @@ class ObservationTracker(ObservationRepository):
         # return new observation (may be None)
         return new_observation
 
-    async def replay_action_sequence(self, actions: list[Action]):
+    async def replay_state_snapshots(self, state_snapshots: list[str]):
         """
-        Replays a sequence of actions.
-        NOTE: allows mocked testing with predefined list of action scenarios.
-
-        TODO: should update to use replayable state snapshot sequences instead.
+        Replays a sequence of state snapshots through the observation pipeline.
+        NOTE: allows mocked testing with predefined list of snapshot scenarios.
         """
         # pause tracking before replay to ensure no overrides and unexpected behavior
         previous_running = await self.pause_tracking()
 
-        # loop over actions, and add each to the local action history.
-        for action in actions:
-            self.inferred_actions.append(action)
-            self.action_counter += 1
-            if self.action_counter >= self.action_context_size:
-                new_observation = await self._create_or_update_observation(context_size=self.action_context_size)
+        # loop over snapshots, and add each to the local snapshot history.
+        for snapshot in state_snapshots:
+            self.state_snapshots.append(snapshot)
+            self.snapshot_counter += 1
+            if self.snapshot_counter >= self.snapshot_context_size:
+                new_observation = await self._create_or_update_observation(context_size=self.snapshot_context_size)
                 if new_observation:
                     await self._save_observation(new_observation)
-                self.action_counter = 0
-        
+                self.snapshot_counter = 0
+
         # flush the last node
         # NOTE: add more saving logic here if we want more than just text log
         if self.observations:
@@ -546,8 +443,8 @@ class ObservationTracker(ObservationRepository):
                 observation_id=last_observation.id,
                 observation_text=last_observation.node
             )
-            logger.info(f"Flushed last observation to TEXT LOG on shutdown: {last_observation.node}")
-        
+            logger.info(f"Flushed last observation to TEXT LOG on replay end: {last_observation.node}")
+
         if previous_running:
             # resume tracking if previously running, using last poll interval
             self.start_background_tracking(poll_interval=self.last_poll_interval)

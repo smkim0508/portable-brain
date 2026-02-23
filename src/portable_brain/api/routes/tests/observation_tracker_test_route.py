@@ -41,20 +41,20 @@ async def replay_scenario(
     observation_tracker: ObservationTracker = Depends(get_observation_tracker),
 ):
     """
-    Replays a predefined action scenario through the observation tracker.
+    Replays a predefined state snapshot scenario through the observation tracker.
     Useful for testing the full memory pipeline without a real device.
-    Available scenarios: instagram_close_friend_messaging, morning_work_app_routine,
-    cross_platform_contact_communication, instagram_fitness_content_browsing.
-    """
-    actions = SCENARIOS[request.scenario_name]()
-    logger.info(f"Replaying scenario '{request.scenario_name}' with {len(actions)} actions")
 
-    await observation_tracker.replay_action_sequence(actions)
+    TODO: SCENARIOS fixtures need to be migrated from list[Action] to list[str] (state snapshots).
+    """
+    snapshots = SCENARIOS[request.scenario_name]()
+    logger.info(f"Replaying scenario '{request.scenario_name}' with {len(snapshots)} snapshots")
+
+    await observation_tracker.replay_state_snapshots(snapshots)
 
     observations = observation_tracker.observations
     return {
         "scenario_name": request.scenario_name,
-        "actions_replayed": len(actions),
+        "snapshots_replayed": len(snapshots),
         "observations_generated": len(observations),
         "observations": [
             {
