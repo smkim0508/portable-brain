@@ -68,24 +68,34 @@ class ObservationTracker(ObservationRepository):
     def __init__(self, droidrun_client: DroidRunClient, llm_client: TypedLLMClient, text_embedding_client: TypedTextEmbeddingClient, main_db_engine: AsyncEngine):
         # NOTE: if tracker holds any additional dependencies in the future, the items from repository needs to be re-initialized.
         super().__init__(droidrun_client=droidrun_client, llm_client=llm_client, main_db_engine=main_db_engine)
-        # track the 50 most recent inferred actions
-        self.inferred_actions: deque[Action] = deque(maxlen=50)
-        # NOTE: should be 10, lowered for testing
-        self.action_context_size: int = 3 # number of previous actions to track before attempting to infer an observation
+        # tracker settings
+        self.last_poll_interval: float = 1.0 # saves the last polling interval to preserve it after pauses
+        self.action_context_size: int = 3 # NOTE: should be 10, number of previous actions to track before attempting to infer an observation
         self.action_counter: int = 0 # counter to track the number of actions since last observation
+        
+        # track the 50 most recent inferred actions
+        # NOTE: deprecated, to be removed
+        self.inferred_actions: deque[Action] = deque(maxlen=50)
+
+        # track the 50 most recent state snapshots, which is the cleaned up version of UIStateChanges
+        # just a semantic, compressed text description of each state for LLM inference, not a Pydantic wrapper
+        self.state_snapshots: deque[str] = deque(maxlen=50)
+
         # track the 20 most recent high-level observations based on inferred actions
         # NOTE: observations look at prev. records to update
         self.observations: deque[Observation] = deque(maxlen=20)
+
         # store recent state changes as a queue w/ max length of 10 to avoid too much memory
         self.recent_state_changes: deque[UIStateChange] = deque(maxlen=10)
+
+        # tracker states
         self.running = False
         self._tracking_task: Optional[asyncio.Task] = None
+
         # observation helper
         self.inferencer = ObservationInferencer(droidrun_client=self.droidrun_client, llm_client=self.llm_client, main_db_engine=self.main_db_engine)
         # embedding helper NOTE: embedding client is not a core dependency of observation tracker.
         self.embedding_generator = EmbeddingGenerator(embedding_client=text_embedding_client, main_db_engine=self.main_db_engine)
-        # saves the last polling interval to preserve it after pauses
-        self.last_poll_interval: float = 1.0
 
     async def start_tracking(self, poll_interval: float = 1.0):
         """
@@ -99,6 +109,7 @@ class ObservationTracker(ObservationRepository):
         while self.running:
             try:
                 # Detect any state change
+                # returns None if no change, otherwise a UIStateChange object
                 change: UIStateChange | None = await self.droidrun_client.detect_state_change()
 
                 if change:
@@ -106,6 +117,11 @@ class ObservationTracker(ObservationRepository):
                     # NOTE: automatically maintained via deque
                     self.recent_state_changes.append(change)
                     logger.info(f"Detected state change: {change.change_type}")
+                    
+                    # if APP_SWITCH change, simply append the before and after packages to
+                    if change.change_type == StateChangeType.APP_SWITCH:
+                        pass
+
                     # infer what action might have caused this change
                     inferred_action = self._infer_action(change)
                     # store inferred actions

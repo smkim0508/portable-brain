@@ -334,13 +334,13 @@ class DroidRunClient:
         Check if device state has changed since last check and return the change.
 
         Returns:
-        The UI State Change or None if no change TODO: should be represented with canonical StateChange DTOs.
+        The UIStateChange object or None if no change
 
         Use this for continuous monitoring in background tasks.
         NOTE: this is the primary method called by observation tracker to detect state changes and use state.
         TODO: This should reflect using canonical UI State DTOs.
         """
-        # TODO: wrap droidrun's state w/ canonical UI state DTO
+        # fetches the raw UI state
         current_state_raw = await self.tools.get_state()
         # use helper to format raw state into DTO
         current_state = self._format_raw_ui_state(current_state_raw)
@@ -355,6 +355,7 @@ class DroidRunClient:
             return None
 
         # case 2)
+        # NOTE: change types are only APP_SWITCH, CHANGED, or NO_CHANGE
         change_type = self._classify_change(self.last_state, current_state)
         if change_type == StateChangeType.NO_CHANGE:
             return None
