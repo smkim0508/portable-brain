@@ -61,6 +61,7 @@ class ObservationTracker(ObservationRepository):
         # tracker settings
         self.last_poll_interval: float = 1.0 # saves the last polling interval to preserve it after pauses
         self.snapshot_context_size: int = 10
+        self.content_throttle_interval: float = 30.0 # min seconds between snapshots for same-activity content changes
 
         # tracker states
         self.running = False
@@ -114,15 +115,26 @@ class ObservationTracker(ObservationRepository):
                         app_switch_info=f"APP SWITCH: from {change.before.package} to {change.after.package}" if is_app_switch else None,
                     )
 
-                    # debounce: skip snapshot if content is identical to last recorded snapshot
-                    # app switches always bypass debounce since they mark a clear navigation event
+                    # determine whether to record this snapshot:
+                    # - app switches and activity changes always record immediately
+                    # - same-activity content changes are throttled to content_throttle_interval seconds
+                    # - identical content is always skipped
                     last_snapshot = self.state_snapshots[-1] if self.state_snapshots else None
+                    is_activity_change = last_snapshot is None or snapshot.activity != last_snapshot.activity
                     content_changed = last_snapshot is None or snapshot.formatted_text != last_snapshot.formatted_text
-                    if not is_app_switch and not content_changed:
-                        # NOTE: the full state changes history tracks everything, even if snapshot is skipped
-                        logger.info("Skipping duplicate snapshot (formatted_text unchanged)")
-                        await asyncio.sleep(poll_interval)
-                        continue
+
+                    if not is_app_switch and not is_activity_change and last_snapshot: # NOTE: last_snapshot is always logically True when is_activity_change is False
+                        # same activity: skip if content is identical
+                        if not content_changed:
+                            logger.info("Skipping duplicate snapshot (formatted_text unchanged)")
+                            await asyncio.sleep(poll_interval)
+                            continue
+                        # same activity, content changed: throttle to content_throttle_interval
+                        seconds_since_last = (snapshot.timestamp - last_snapshot.timestamp).total_seconds()
+                        if seconds_since_last < self.content_throttle_interval:
+                            logger.info(f"Throttling content-only change ({seconds_since_last:.1f}s since last snapshot, threshold: {self.content_throttle_interval}s)")
+                            await asyncio.sleep(poll_interval)
+                            continue
 
                     self.state_snapshots.append(snapshot)
                     self.snapshot_counter += 1
