@@ -68,8 +68,11 @@ class ObservationTracker(ObservationRepository):
         self._tracking_task: Optional[asyncio.Task] = None
         self.snapshot_counter: int = 0
 
-        # track the 50 most recent state snapshots as structured DTOs
+        # track the 50 most recent state snapshots as structured DTOs (global timeline)
         self.state_snapshots: deque[UIStateSnapshot] = deque(maxlen=50)
+        # per-app snapshot history and counters (keyed by package name)
+        self.app_snapshots: Dict[str, deque[UIStateSnapshot]] = {}
+        self.app_snapshot_counters: Dict[str, int] = {}
 
         # track the 20 most recent high-level observations based on semantic state snapshots
         # NOTE: observations look at prev. records to update
@@ -148,6 +151,13 @@ class ObservationTracker(ObservationRepository):
                     logger.info(f"Recording new snapshot from activity: {snapshot.activity.activity_name}, package: {snapshot.package}")
                     self.state_snapshots.append(snapshot)
                     self.snapshot_counter += 1
+                    # per-app tracking: initialize deque on first snapshot for this package
+                    pkg = snapshot.package
+                    if pkg not in self.app_snapshots:
+                        self.app_snapshots[pkg] = deque(maxlen=30)
+                        self.app_snapshot_counters[pkg] = 0
+                    self.app_snapshots[pkg].append(snapshot)
+                    self.app_snapshot_counters[pkg] += 1
                     # penultimate step, create observation node every context_size snapshots
                     if self.snapshot_counter >= self.snapshot_context_size:
                         new_observation = await self._create_or_update_observation(context_size=self.snapshot_context_size)
@@ -331,8 +341,14 @@ class ObservationTracker(ObservationRepository):
         self.observations.clear()
 
     def clear_state_snapshots(self):
-        """Clear state snapshots history after persisting to DB."""
+        """
+        Clear state snapshots history after persisting to DB.
+        NOTE: also clears snapshot history for each app and counters.
+        """
         self.state_snapshots.clear()
+        self.app_snapshots.clear()
+        self.app_snapshot_counters.clear()
+        self.snapshot_counter = 0
 
     def clear_state_changes(self):
         """Clear state change history after persisting to DB."""
@@ -346,6 +362,8 @@ class ObservationTracker(ObservationRepository):
         """
         return {
             "state_snapshots": len(self.state_snapshots),
+            "app_snapshots": {pkg: len(dq) for pkg, dq in self.app_snapshots.items()},
+            "app_snapshot_counters": dict(self.app_snapshot_counters),
             "observations": len(self.observations),
             "state_changes": len(self.recent_state_changes),
         }
@@ -466,6 +484,12 @@ class ObservationTracker(ObservationRepository):
         for snapshot in state_snapshots:
             self.state_snapshots.append(snapshot)
             self.snapshot_counter += 1
+            pkg = snapshot.package
+            if pkg not in self.app_snapshots:
+                self.app_snapshots[pkg] = deque(maxlen=30)
+                self.app_snapshot_counters[pkg] = 0
+            self.app_snapshots[pkg].append(snapshot)
+            self.app_snapshot_counters[pkg] += 1
             if self.snapshot_counter >= self.snapshot_context_size:
                 new_observation = await self._create_or_update_observation(context_size=self.snapshot_context_size)
                 if new_observation:
