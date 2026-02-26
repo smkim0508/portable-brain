@@ -9,6 +9,7 @@ from portable_brain.common.db.models.memory.people import InterpersonalRelations
 
 from dotenv import load_dotenv
 import os
+from pathlib import Path
 
 # helper to delete all tables
 def delete_all_tables(engine):
@@ -38,6 +39,8 @@ def delete_all_tables(engine):
             except Exception as e2:
                 print(f"WARNING: Error dropping {table_name}: {e2}")
 
+    print("Tables deleted successfully!")
+
 # helper to delete a single table
 def delete_table(table_name, engine):
     print(f"WARNING: THIS WILL DELETE TABLE *{table_name}* IN THE MAIN DB IN 5 SECONDS, PLEASE DOUBLE CHECK!!")
@@ -53,16 +56,22 @@ def delete_table(table_name, engine):
     print(f"Dropped table {table_name}")
 
 if __name__ == "__main__":
-    # one-off script to create tables
-    load_dotenv()
+    # one-off script to delete tables
+    APP_ENV = os.getenv("APP_ENV", "dev")
+    SERVICE_ROOT = Path(__file__).resolve().parents[2]
+    env_file_path = SERVICE_ROOT / f".env.{APP_ENV}"
+
+    print(f"Loading env file from: {env_file_path}")
+    load_dotenv(dotenv_path=env_file_path)
+
     MAIN_DB_USER = os.getenv("MAIN_DB_USER")
-    MAIN_DB_PASSWORD = os.getenv("MAIN_DB_PASSWORD")
+    MAIN_DB_PW = os.getenv("MAIN_DB_PW")
     MAIN_DB_HOST = os.getenv("MAIN_DB_HOST")
     MAIN_DB_PORT = os.getenv("MAIN_DB_PORT")
     MAIN_DB_NAME = os.getenv("MAIN_DB_NAME")
 
-    # MAIN_DB_URL = f"postgresql+psycopg2://{MAIN_DB_USER}:{MAIN_DB_PASSWORD}@{MAIN_DB_HOST}:{MAIN_DB_PORT}/{MAIN_DB_NAME}"
-    MAIN_DB_URL = f"postgresql+psycopg2://{MAIN_DB_USER}:{MAIN_DB_PASSWORD}@{MAIN_DB_HOST}:{MAIN_DB_PORT}/{MAIN_DB_NAME}?sslmode=require"
+    # MAIN_DB_URL = f"postgresql+psycopg2://{MAIN_DB_USER}:{MAIN_DB_PW}@{MAIN_DB_HOST}:{MAIN_DB_PORT}/{MAIN_DB_NAME}"
+    MAIN_DB_URL = f"postgresql+psycopg2://{MAIN_DB_USER}:{MAIN_DB_PW}@{MAIN_DB_HOST}:{MAIN_DB_PORT}/{MAIN_DB_NAME}?sslmode=require"
 
     assert MAIN_DB_URL, "MAIN_DB_URL is not set"
 

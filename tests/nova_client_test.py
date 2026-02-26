@@ -18,6 +18,7 @@ load_dotenv(dotenv_path=env_file_path)
 
 # Get the API key
 nova_api_key = os.getenv("NOVA_API_KEY")
+assert nova_api_key, "NOVA_API_KEY is not set"
 
 # Guide provided by Amazon's documentation
 client = OpenAI(

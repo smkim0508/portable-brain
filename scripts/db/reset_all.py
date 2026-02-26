@@ -30,7 +30,7 @@ if __name__ == "__main__":
     print(f"Loading env file from: {env_file_path}")
     load_dotenv(dotenv_path=env_file_path)
 
-    # one-off script to create tables
+    # one-off script to reset all tables
     MAIN_DB_USER = os.getenv("MAIN_DB_USER")
     MAIN_DB_PW = os.getenv("MAIN_DB_PW")
     MAIN_DB_HOST = os.getenv("MAIN_DB_HOST")
