@@ -51,6 +51,7 @@ async def find_similar_embeddings(
 ) -> list[tuple[TextEmbeddingLogs, float]]:
     """
     Find the most similar embeddings using vector similarity search.
+    TODO: need to make DTOs instead of porting fragile ORMs
 
     Args:
         query_vector: The query embedding vector
@@ -121,6 +122,43 @@ async def get_embedding_by_observation_id(
             return embedding
     except Exception as e:
         logger.error(f"Failed to get embedding by ID: {e}")
+        raise
+
+async def find_similar_texts(
+    query_vector: list[float],
+    limit: int,
+    main_db_engine: AsyncEngine,
+    distance_metric: str = "cosine", # "cosine", "l2", or "inner_product"
+) -> list[str]:
+    """
+    Find observation texts most similar to the query vector.
+    NOTE: more minimal than above helper, returns just the list[str] texts found.
+
+    Returns:
+        List of observation_text strings ordered by similarity
+    """
+    distance_functions = {
+        "cosine": TextEmbeddingLogs.embedding_vector.cosine_distance,
+        "l2": TextEmbeddingLogs.embedding_vector.l2_distance,
+        "inner_product": TextEmbeddingLogs.embedding_vector.max_inner_product,
+    }
+
+    if distance_metric not in distance_functions:
+        raise ValueError(f"Invalid distance metric: {distance_metric}. Use 'cosine', 'l2', or 'inner_product'")
+
+    session_maker = get_async_session_maker(main_db_engine)
+
+    try:
+        async with session_maker() as session:
+            stmt = (
+                select(TextEmbeddingLogs.observation_text)
+                .order_by(distance_functions[distance_metric](query_vector))
+                .limit(limit)
+            )
+            result = await session.execute(stmt)
+            return list(result.scalars().all())
+    except Exception as e:
+        logger.error(f"Failed to find similar texts: {e}")
         raise
 
 async def delete_embedding_by_observation_id(

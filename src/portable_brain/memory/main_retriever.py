@@ -2,11 +2,15 @@
 
 from sqlalchemy.ext.asyncio import AsyncEngine
 from typing import Optional
+import numpy as np
 
 from portable_brain.common.db.models.memory.structured_storage import StructuredMemory
 from portable_brain.common.db.models.memory.text_embeddings import TextEmbeddingLogs
 from portable_brain.common.db.models.memory.people import InterpersonalRelationship
 from portable_brain.common.services.embedding_service.text_embedding.dispatcher import TypedTextEmbeddingClient
+
+# data structures for caches
+from collections import OrderedDict, deque
 
 # structured memory fetch operations
 from portable_brain.common.db.crud.memory.structured_memory_crud import (
@@ -18,6 +22,7 @@ from portable_brain.common.db.crud.memory.structured_memory_crud import (
 # text embeddings fetch operations
 from portable_brain.common.db.crud.memory.text_embeddings_crud import (
     find_similar_embeddings,
+    find_similar_texts,
     get_embedding_by_observation_id,
 )
 # people embeddings fetch operations
@@ -35,12 +40,22 @@ class MemoryRetriever():
     - Wraps CRUD read operations with semantically intuitive method names.
     - Each method specifies the memory type it targets.
 
+    Caches:
+    1. Exact match cache - skips embedding client entirely on identical query texts (LRU via OrderedDict, max 50)
+    2. Semantic cache — skips db retrieval if a sufficiently similar query was seen before (FIFO deque, max 10)
+    NOTE: only supported by find_semantically_similar for now, to be implemented for other methods
+
     TODO: just baseline right now, memory to be refined.
     """
 
     def __init__(self, main_db_engine: AsyncEngine, text_embedding_client: TypedTextEmbeddingClient):
         self.main_db_engine = main_db_engine
         self.text_embedding_client = text_embedding_client
+        # caches to reduce latency, for text embedding logs
+        self._exact_cache: OrderedDict[str, list[str]] = OrderedDict()
+        self._semantic_cache: deque[tuple[list[float], list[str]]] = deque(maxlen=10) # query_vector, results tuple
+        self._cosine_similarity_threshold = 0.90 # threshold for semantic cache
+        self._exact_cache_max = 50 # threshold for max number of items in exact query cache
 
     # =====================================================================
     # Structured Memory — Long-Term People (inter-personal relationships)
@@ -214,15 +229,45 @@ class MemoryRetriever():
         limit: int = 5,
         distance_metric: str = "cosine",
     ) -> list[str]:
-        """Semantic search across all embedded observations using natural language. Embeds the query internally. Returns a list of observation text strings ordered by similarity."""
-        query_vectors = await self.text_embedding_client.aembed_text(text=[query])
-        results = await find_similar_embeddings(
-            query_vector=query_vectors[0],
-            limit=limit,
+        """
+        Semantic search across all embedded observations using natural language.
+        Embeds the query internally. Returns a list of observation text strings ordered by similarity.
+
+        NOTE: supports both exact match and semantic caches.
+        """
+        # 1) exact match — skip embedding entirely
+        if query in self._exact_cache:
+            print(f"Exact cache hit: {query}")
+            # if exact cache hit directly, just promote to most recently used spot in cache
+            self._exact_cache.move_to_end(query)
+            return self._exact_cache[query]
+        
+        query_vectors = await self.text_embedding_client.aembed_text(text=[query], task_type="RETRIEVAL_QUERY")
+        if not query_vectors:
+            return []
+        query_vector = query_vectors[0]
+
+        # 2) semantic cache — skip db retrieval if similar query was seen before
+        # NOTE: current helper loops through all the cached vectors, but it is possible to implement this via numpy matrix multiplication to one-shot all cosine similarities
+        # - above optimization not yet implemented since cache size is negligibly small (most case) and may be beneficial if recent cache computed first and returns
+        semantic_cache_result = self._find_semantic_cache_hit(query_vector)
+        if semantic_cache_result:
+            print(f"Semantic cache hit on: {query}")
+            # NOTE: if we have a semantic cache hit, we also promote to exact cache w/ similar vector results (not exact)
+            # - this is logical as even without this promotion, the next query will be the same semantic cache hit anyways
+            self._set_exact_cache(query, semantic_cache_result)
+            return semantic_cache_result
+        
+        # 3) cache miss — retrieve from db and populate both caches
+        results = await find_similar_texts(
+            query_vector=query_vector,
             main_db_engine=self.main_db_engine,
-            distance_metric=distance_metric,
+            limit=limit,
+            distance_metric=distance_metric
         )
-        return [record.observation_text for record, _ in results]
+        self._set_exact_cache(query, results)
+        self._semantic_cache.append((query_vector, results))
+        return results
 
     async def get_embedding_for_observation(
         self,
@@ -233,3 +278,39 @@ class MemoryRetriever():
             observation_id=observation_id,
             main_db_engine=self.main_db_engine,
         )
+
+    # =====================================================================
+    # Utils for cache management
+    # =====================================================================
+    def _set_exact_cache(self, key: str, value: list[str]) -> None:
+        """
+        Simple helper to insert or or update elements in LRU exact cache, evicting the oldest entry if at capacity.
+        """
+        if key in self._exact_cache:
+            self._exact_cache.move_to_end(key)
+        self._exact_cache[key] = value
+        if len(self._exact_cache) > self._exact_cache_max:
+            self._exact_cache.popitem(last=False) # evict LRU
+
+    def _cosine_similarity(self, a: list[float], b: list[float]) -> float:
+        """
+        Simple helper to compute cosine similarity between two vectors using numpy.
+        Returns 0.0 if either vector has zero norm (undefined similarity).
+        """
+        va, vb = np.array(a), np.array(b)
+        norm_a, norm_b = np.linalg.norm(va), np.linalg.norm(vb)
+        if norm_a == 0.0 or norm_b == 0.0:
+            return 0.0
+        return float(np.dot(va, vb) / (norm_a * norm_b))
+
+    def _find_semantic_cache_hit(self, query_vector: list[float]) -> Optional[list[str]]:
+        """
+        Simple helper to loop through semantic cache to find query hit via cos. sim. threshold.
+        - Iterates newest-first so a more recent cached result is preferred over an older one.
+        - If cache hit, returns just the cached similar text results
+        - returns None if no semantic cache hit
+        """
+        for cached_vector, cached_results in reversed(self._semantic_cache):
+            if self._cosine_similarity(query_vector, cached_vector) >= self._cosine_similarity_threshold:
+                return cached_results
+        return None

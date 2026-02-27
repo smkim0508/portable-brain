@@ -4,7 +4,6 @@ from typing import Any, Optional, Dict
 from portable_brain.common.logging.logger import logger
 from portable_brain.config.app_config import get_service_settings
 from portable_brain.core.lifespan import lifespan
-from fastapi.middleware.cors import CORSMiddleware
 from portable_brain.common.db.session import get_async_session_maker
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
