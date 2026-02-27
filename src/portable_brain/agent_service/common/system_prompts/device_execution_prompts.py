@@ -212,12 +212,13 @@ class DeviceExecutionPrompts():
         • "the usual app" / implicit platform → preferred platform from context
         • "my friend" / vague targets → specific person name from context
         • Missing details (phone numbers, usernames) → fill from context if available
+        • Stylistic preferences (e.g., "user texts casually and informally", "user rarely uses punctuation", "user frequently uses emojis") → apply when composing message content in the enriched command
     - If context does not resolve an ambiguity, state what information is missing in your response rather than guessing.
 
     3) Construct the Enriched Command
     - Be specific: "Open Instagram, navigate to DMs, find the conversation with @sarah_smith, type the message: 'Are you free for dinner tonight?', then tap the Send button to confirm."
     - Include all necessary navigation: app to open, screens to navigate, fields to fill.
-    - For messaging: always include the platform, recipient identifier, and message content. If the user provides exact words to send, use them verbatim. If the user gives a topic or intent without exact words (e.g., "tell Sarah about the meetup", "text him to ball tomorrow"), compose a natural, conversational message that expresses that intent — for example: "Hey, are we still on for the meetup tomorrow?" or "Hey, we still balling tomorrow?". Do not reduce a topic description to a bare fragment. Write a message the user would actually send. Always end with an explicit step to tap the Send button to confirm — e.g., "then tap the Send button to confirm."
+    - For messaging: always include the platform, recipient identifier, and message content. If the user provides exact words to send, use them verbatim. If the user gives a topic or intent without exact words (e.g., "tell Sarah about the meetup", "text him to ball tomorrow"), compose a natural, conversational message that expresses that intent — for example: "Hey, are we still on for the meetup tomorrow?" or "Hey, we still balling tomorrow?". Do not reduce a topic description to a bare fragment. Write a message the user would actually send. If context includes stylistic preferences (e.g., "user texts casually and uses short sentences", "user rarely uses punctuation", "user frequently uses emojis"), reflect that style when composing the message. Always end with an explicit step to tap the Send button to confirm — e.g., "then tap the Send button to confirm."
     - For sharing content (e.g., sharing a post, reel, article, or link to a specific person or group): always use the platform's native share button — do NOT copy the link and paste it into a chat, as pasting is unreliable. Instead, tap the share icon on the content, then use the search or recipient field within the share UI to find and select the target directly, then confirm by tapping the Send or Share button. Example: "Tap the Share button on the post, search for [recipient] in the share sheet, select them, and tap Send to confirm."
     - For app interactions: include the specific app package or name and the action to perform.
 
@@ -344,6 +345,22 @@ class DeviceExecutionPrompts():
 
     Output:
     {"success": false, "result_summary": "Could not place a phone call. The likely target is mike_johnson, but no phone number is available in the provided context.", "failure_reason": "No phone number found for mike_johnson. Context only contains Slack messaging information.", "missing_information": "Phone number for mike_johnson."}
+
+    ---
+
+    Case 7) Messaging with stylistic context — compose naturally using user's slang
+    User Request: "Text John to study"
+    Appended Context: "John is user's classmate. User typically texts in a casual, informal style — uses abbreviations like 'u' and 'wanna', omits punctuation, and keeps messages short."
+
+    Thought Process: Platform (text/SMS) and recipient (John) are explicit. The user's intent is to ask John to study together, but no exact words were provided. Context includes stylistic preferences: casual, abbreviations like 'u' and 'wanna', short messages with no punctuation. I should compose a message that reflects this style rather than defaulting to formal language.
+
+    Tool Call:
+    execute_command(enriched_command="Open the Messages app, find John's conversation, type the message: do u wanna study, then tap the Send button to confirm.", reasoning=false)
+
+    Tool Result: {"success": true, "reason": "Message sent to John.", "steps": 3, "command": "Open the Messages app, find John's conversation, type the message: do u wanna study, then tap the Send button to confirm."}
+
+    Output:
+    {"success": true, "result_summary": "Sent John a text asking if he wants to study.", "failure_reason": null, "missing_information": null}
 
     </FEW-SHOT EXAMPLES>
 

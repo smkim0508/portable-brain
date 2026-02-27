@@ -79,6 +79,7 @@ class MemoryRetrievalPrompts():
     - Identify the core intent: what action will the execution agent need to perform?
     - List the concrete parameters the execution agent will need (app name, contact name, phone number, message content, navigation target, etc.).
     - Identify which parameters are already explicit in the request vs. which are ambiguous or missing.
+    - For communication actions (messaging, texting, DMing): the user's stylistic preferences (tone, formality, emoji usage, message length) are also relevant context — the execution agent uses them to compose message content naturally. Treat style signals as retrievable parameters, not just nice-to-haves.
 
     2) Plan Your Queries
     - For each missing parameter, decide which memory tool is most likely to resolve it:
@@ -89,6 +90,7 @@ class MemoryRetrievalPrompts():
         • Recent context ("that article", "what I was reading") → get_recent_content
         • Vague or broad references → search_memories with relevant keywords
         • When keyword search returns nothing useful → find_semantically_similar with a natural language query
+        • Stylistic preferences for communication actions (texting tone, formality, emoji usage, message length) → get_short_term_preferences(source_app_id=<platform>) or find_semantically_similar with a query about messaging style on the relevant platform. Include any retrieved style signals in context_summary even if the user did not explicitly ask for them.
     - If this is a re-retrieval, check retrieval_state.previous_queries and DO NOT repeat the same tool call with the same parameters.
 
     3) Execute Queries
@@ -111,6 +113,7 @@ class MemoryRetrievalPrompts():
         "context_summary": <string>,   // Natural language paragraph of all relevant facts retrieved from memory.
                                         // Written so the execution agent can use it directly.
                                         // Include: resolved entity names, preferred platforms, communication patterns,
+                                        // relevant stylistic preferences for communication actions (e.g., texting tone, formality, emoji usage),
                                         // relevant content, and any other facts that inform the action.
 
         "inferred_intent": <string>,   // Single clear sentence describing the user's resolved intent.
@@ -367,6 +370,7 @@ class MemoryRetrievalPrompts():
     - Identify the core intent: what action will the execution agent need to perform?
     - List the concrete parameters the execution agent will need (app name, contact name, phone number, message content, navigation target, etc.).
     - Identify which parameters are already explicit in the request vs. which are ambiguous or missing.
+    - For communication actions (messaging, texting, DMing): the user's stylistic preferences (tone, formality, emoji usage, message length) are also relevant context — the execution agent uses them to compose message content naturally. Treat style signals as retrievable parameters, not just nice-to-haves.
 
     2) Plan Your Queries
     - For each missing parameter, choose the appropriate tool:
@@ -375,6 +379,7 @@ class MemoryRetrievalPrompts():
         • App/platform references ("the usual app", "where I normally message") → find_semantically_similar with a query about app usage habits
         • Recent context ("that article", "what I was reading") → find_semantically_similar with a query about recently viewed content
         • Vague or broad references → find_semantically_similar with relevant keywords
+        • Stylistic preferences for communication actions (texting tone, formality, emoji usage, message length) → find_semantically_similar with a query about messaging style on the relevant platform. Include any retrieved style signals in context_summary even if the user did not explicitly ask for them.
     - If this is a re-retrieval, check retrieval_state.previous_queries and DO NOT repeat the same query. Rephrase or approach from a different angle.
 
     3) Execute Queries
@@ -397,6 +402,7 @@ class MemoryRetrievalPrompts():
         "context_summary": <string>,   // Natural language paragraph of all relevant facts retrieved from memory.
                                         // Written so the execution agent can use it directly.
                                         // Include: resolved entity names, preferred platforms, communication patterns,
+                                        // relevant stylistic preferences for communication actions (e.g., texting tone, formality, emoji usage),
                                         // relevant content, and any other facts that inform the action.
 
         "inferred_intent": <string>,   // Single clear sentence describing the user's resolved intent.
