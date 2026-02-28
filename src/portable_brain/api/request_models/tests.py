@@ -64,3 +64,8 @@ class SemanticSearchRequest(BaseModel):
     query: str
     limit: int = 5
     disable_cache: bool = False
+
+class FindPersonByNameRequest(BaseModel):
+    name: str
+    similarity_threshold: float = 0.3
+    limit: int = 10

@@ -59,6 +59,8 @@ class MemoryRetriever():
         self._semantic_cache: deque[tuple[list[float], list[str]]] = deque(maxlen=10) # query_vector, results tuple
         self._cosine_similarity_threshold = 0.70 # threshold for semantic cache
         self._exact_cache_max = 50 # threshold for max number of items in exact query cache
+        # exact name cache for find_person_by_name (keyed on normalized lowercase name)
+        self._person_name_cache: OrderedDict[str, list[dict]] = OrderedDict()
 
     # =====================================================================
     # Structured Memory — Long-Term People (inter-personal relationships)
@@ -198,13 +200,27 @@ class MemoryRetriever():
         Fuzzy name lookup using trigram similarity. Handles typos, nicknames, and
         partial names. Returns dicts with full_name, relationship_description, and
         similarity_score, ordered by best match.
+
+        NOTE: exact name cache keyed on normalized (lowercased) name, same LRU eviction as _exact_cache.
         """
-        return await find_person_by_name(
+        normalized = name.strip().lower()
+
+        if normalized in self._person_name_cache:
+            logger.info(f"Person name exact cache hit: {name}")
+            self._person_name_cache.move_to_end(normalized)
+            return self._person_name_cache[normalized]
+
+        results = await find_person_by_name(
             name=name,
             main_db_engine=self.main_db_engine,
             similarity_threshold=similarity_threshold,
             limit=limit,
         )
+
+        self._person_name_cache[normalized] = results
+        if len(self._person_name_cache) > self._exact_cache_max:
+            self._person_name_cache.popitem(last=False)
+        return results
 
     async def find_similar_person_relationships(
         self,

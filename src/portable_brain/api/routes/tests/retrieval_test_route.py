@@ -20,7 +20,7 @@ from portable_brain.core.dependencies import (
 from portable_brain.memory.main_retriever import MemoryRetriever
 
 # request models
-from portable_brain.api.request_models.tests import ToolCallRequest, SemanticSearchRequest
+from portable_brain.api.request_models.tests import ToolCallRequest, SemanticSearchRequest, FindPersonByNameRequest
 
 # settings
 from portable_brain.config.app_config import get_service_settings
@@ -41,6 +41,25 @@ async def test_tool_call(
     result = await retrieval_agent.test_retrieve(request.user_request)
     # logger.info(f"Retrieval test result: {result}")
     return {"result": result}
+
+@router.post("/find-person-by-name")
+async def test_find_person_by_name(
+    request: FindPersonByNameRequest,
+    memory_retriever: MemoryRetriever = Depends(get_memory_retriever),
+):
+    """
+    Test route: calls find_person_by_name directly and logs retrieval latency.
+    NOT an agent test exactly, but measures the latency of tool called retrieval method w/ exact name match cache.
+    """
+    start = time.perf_counter()
+    results = await memory_retriever.find_person_by_name(
+        name=request.name,
+        similarity_threshold=request.similarity_threshold,
+        limit=request.limit,
+    )
+    elapsed_ms = (time.perf_counter() - start) * 1000
+    logger.info(f"find_person_by_name '{request.name}' took {elapsed_ms:.2f}ms, {len(results)} result(s)")
+    return {"results": results, "elapsed_ms": round(elapsed_ms, 2)}
 
 @router.post("/semantic-search")
 async def test_semantic_search(
