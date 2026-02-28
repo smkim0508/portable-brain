@@ -164,6 +164,21 @@ class DeviceExecutionPrompts():
     Output:
     {"success": false, "result_summary": "Could not place a phone call. The request refers to 'him' but no specific contact or phone number was provided.", "failure_reason": "Ambiguous target: 'him' cannot be resolved to a specific contact or phone number.", "missing_information": "Contact name and phone number for the intended recipient."}
 
+    ---
+
+    Case 7) Sharing media content — pure execution, no text composition needed
+    User Request: "Share this reel with Kevin Chen"
+
+    Thought Process: The user wants to share a reel (currently on screen) with Kevin Chen. This is a pure sharing action — no message text needs to be composed or attached. Use the platform's native share UI to send the reel directly to Kevin Chen.
+
+    Tool Call:
+    execute_command(enriched_command="On the current Instagram reel, tap the Share button, search for Kevin Chen in the share sheet, select him, and tap Send to confirm.", reasoning=false)
+
+    Tool Result: {"success": true, "reason": "Reel shared with Kevin Chen via Instagram.", "steps": 4, "command": "On the current Instagram reel, tap the Share button, search for Kevin Chen in the share sheet, select him, and tap Send to confirm."}
+
+    Output:
+    {"success": true, "result_summary": "Shared the reel with Kevin Chen on Instagram.", "failure_reason": null, "missing_information": null}
+
     </FEW-SHOT EXAMPLES>
 
     Remember: Always call execute_command to interact with the device. Never guess or fabricate details not present in the request. If the request is ambiguous and cannot be resolved, report the failure clearly. Always produce valid JSON matching the ExecutionLLMOutput schema as your final response.
@@ -212,7 +227,7 @@ class DeviceExecutionPrompts():
         • "the usual app" / implicit platform → preferred platform from context
         • "my friend" / vague targets → specific person name from context
         • Missing details (phone numbers, usernames) → fill from context if available
-        • Stylistic preferences (e.g., "user texts casually and informally", "user rarely uses punctuation", "user frequently uses emojis") → apply when composing message content in the enriched command
+        • Stylistic preferences (e.g., "user texts casually and informally", "user rarely uses punctuation", "user frequently uses emojis") → apply ONLY when composing message text (e.g., SMS, chat messages). Do NOT apply them to pure execution tasks (sharing content, opening apps, placing calls, checking device state, etc.) — those require no text composition.
     - If context does not resolve an ambiguity, state what information is missing in your response rather than guessing.
 
     3) Construct the Enriched Command
@@ -361,6 +376,22 @@ class DeviceExecutionPrompts():
 
     Output:
     {"success": true, "result_summary": "Sent John a text asking if he wants to study.", "failure_reason": null, "missing_information": null}
+
+    ---
+
+    Case 8) Sharing media content — pure execution, no text composition, stylistic preferences do NOT apply
+    User Request: "Share this reel with Kevin"
+    Appended Context: "Kevin's full name is Kevin Chen. User typically communicates very casually and informally."
+
+    Thought Process: The user wants to share a reel (currently on screen) with Kevin Chen. This is a pure sharing action — no message text needs to be composed. Stylistic preferences are irrelevant here and should NOT be applied. I do not need to attach any caption or accompanying message. Use the platform's native share UI to send the reel directly to Kevin Chen.
+
+    Tool Call:
+    execute_command(enriched_command="On the current Instagram reel, tap the Share button, search for Kevin Chen in the share sheet, select him, and tap Send to confirm.", reasoning=false)
+
+    Tool Result: {"success": true, "reason": "Reel shared with Kevin Chen via Instagram.", "steps": 4, "command": "On the current Instagram reel, tap the Share button, search for Kevin Chen in the share sheet, select him, and tap Send to confirm."}
+
+    Output:
+    {"success": true, "result_summary": "Shared the reel with Kevin Chen on Instagram.", "failure_reason": null, "missing_information": null}
 
     </FEW-SHOT EXAMPLES>
 
